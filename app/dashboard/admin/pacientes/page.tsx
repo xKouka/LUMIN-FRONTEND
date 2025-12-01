@@ -8,6 +8,7 @@ import ModalAgregarPaciente from '@/app/components/ModalAgregarPaciente';
 import ModalEditarPaciente from '@/app/components/ModalEditarPaciente';
 import api from '@/app/lib/api';
 import { Plus, AlertCircle, Trash2 } from 'lucide-react';
+import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
 
 export default function PacientesPage() {
   const [pacientes, setPacientes] = useState<any[]>([]);
@@ -78,16 +79,24 @@ export default function PacientesPage() {
   };
 
   const handleEliminar = async (id: number) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este paciente?')) {
-      try {
-        setCargandoEliminar(id);
-        await api.delete(`/pacientes/${id}`);
-        obtenerPacientes();
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Error al eliminar paciente');
-      } finally {
-        setCargandoEliminar(null);
-      }
+    const result = await showConfirm(
+      '¿Eliminar paciente?',
+      '¿Estás seguro de que deseas eliminar este paciente? Esta acción no se puede deshacer.',
+      'Sí, eliminar',
+      'Cancelar'
+    );
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setCargandoEliminar(id);
+      await api.delete(`/pacientes/${id}`);
+      obtenerPacientes();
+      showSuccess('Paciente eliminado', 'El paciente ha sido eliminado correctamente');
+    } catch (err: any) {
+      showError('Error al eliminar', err.response?.data?.error || 'No se pudo eliminar el paciente');
+    } finally {
+      setCargandoEliminar(null);
     }
   };
 

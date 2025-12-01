@@ -29,3 +29,130 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ============================================
+   HIGH CONTRAST INPUT FIELDS - WCAG AA COMPLIANT
+   ============================================ */
+
+/* Regla para el texto ingresado por el usuario */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+select,
+textarea {
+  background-color: #ffffff !important; /* Fondo blanco */
+  color: #000000 !important; /* Negro puro para máximo contraste */
+  font-weight: 500; /* Tipografía fuerte y de alta definición */
+}
+
+/* Regla específica para las opciones dentro de los select */
+select option {
+  background-color: #ffffff !important; /* Fondo blanco */
+  color: #000000 !important; /* Negro puro para máximo contraste */
+  font-weight: 500;
+}
+
+/* Regla para el placeholder (texto de ayuda) */
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+input[type="tel"]::placeholder,
+input[type="url"]::placeholder,
+input[type="search"]::placeholder,
+input[type="date"]::placeholder,
+input[type="time"]::placeholder,
+input[type="datetime-local"]::placeholder,
+textarea::placeholder {
+  color: #000000 !important; /* Negro puro para máximo contraste */
+  opacity: 1; /* Asegura que el color se aplique correctamente en todos los navegadores */
+  font-weight: 400; /* Peso normal para diferenciar del texto ingresado */
+}
+
+/* Soporte para navegadores basados en WebKit (Safari, Chrome antiguo) */
+input[type="text"]::-webkit-input-placeholder,
+input[type="email"]::-webkit-input-placeholder,
+input[type="password"]::-webkit-input-placeholder,
+input[type="number"]::-webkit-input-placeholder,
+input[type="tel"]::-webkit-input-placeholder,
+input[type="url"]::-webkit-input-placeholder,
+input[type="search"]::-webkit-input-placeholder,
+input[type="date"]::-webkit-input-placeholder,
+input[type="time"]::-webkit-input-placeholder,
+input[type="datetime-local"]::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+/* Soporte para Firefox */
+input[type="text"]::-moz-placeholder,
+input[type="email"]::-moz-placeholder,
+input[type="password"]::-moz-placeholder,
+input[type="number"]::-moz-placeholder,
+input[type="tel"]::-moz-placeholder,
+input[type="url"]::-moz-placeholder,
+input[type="search"]::-moz-placeholder,
+input[type="date"]::-moz-placeholder,
+input[type="time"]::-moz-placeholder,
+input[type="datetime-local"]::-moz-placeholder,
+textarea::-moz-placeholder {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+/* Soporte para Microsoft Edge */
+input[type="text"]::-ms-input-placeholder,
+input[type="email"]::-ms-input-placeholder,
+input[type="password"]::-ms-input-placeholder,
+input[type="number"]::-ms-input-placeholder,
+input[type="tel"]::-ms-input-placeholder,
+input[type="url"]::-ms-input-placeholder,
+input[type="search"]::-ms-input-placeholder,
+input[type="date"]::-ms-input-placeholder,
+input[type="time"]::-ms-input-placeholder,
+input[type="datetime-local"]::-ms-input-placeholder,
+input[type="datetime-local"]::-ms-input-placeholder,
+textarea::-ms-input-placeholder {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+/* Asegurar contraste en modo oscuro */
+@media (prefers-color-scheme: dark) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea {
+    color:#000000 !important; /* Blanco puro en modo oscuro */
+    background-color: #ffffff; /* Fondo oscuro para contraste */
+  }
+
+  input[type="text"]::placeholder,
+  input[type="email"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="number"]::placeholder,
+  input[type="tel"]::placeholder,
+  input[type="url"]::placeholder,
+  input[type="search"]::placeholder,
+  input[type="date"]::placeholder,
+  input[type="time"]::placeholder,
+  input[type="datetime-local"]::placeholder,
+  textarea::placeholder {
+    color: #b0b0b0 !important; /* Gris claro para placeholders en modo oscuro */
+  }
+}

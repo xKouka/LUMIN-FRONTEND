@@ -8,6 +8,7 @@ import ModalAgregarProducto from '@/app/components/ModalAgregarProducto';
 import ModalEditarProducto from '@/app/components/ModalEditarProducto';
 import api from '@/app/lib/api';
 import { Plus, AlertCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
 
 export default function InventarioPage() {
   const [productos, setProductos] = useState<any[]>([]);
@@ -70,16 +71,24 @@ export default function InventarioPage() {
   };
 
   const handleEliminar = async (id: number) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-      try {
-        setCargandoEliminar(id);
-        await api.delete(`/inventario/${id}`);
-        obtenerInventario();
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Error al eliminar producto');
-      } finally {
-        setCargandoEliminar(null);
-      }
+    const result = await showConfirm(
+      '¿Eliminar producto?',
+      '¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.',
+      'Sí, eliminar',
+      'Cancelar'
+    );
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setCargandoEliminar(id);
+      await api.delete(`/inventario/${id}`);
+      obtenerInventario();
+      showSuccess('Producto eliminado', 'El producto ha sido eliminado correctamente');
+    } catch (err: any) {
+      showError('Error al eliminar', err.response?.data?.error || 'No se pudo eliminar el producto');
+    } finally {
+      setCargandoEliminar(null);
     }
   };
 
@@ -208,7 +217,7 @@ export default function InventarioPage() {
                           onClick={() => handleEditar(producto)}
                           className="text-brand-600 hover:text-brand-700 font-medium"
                         >
-                          Editar
+                          Gestionar
                         </button>
                         <button
                           onClick={() => handleEliminar(producto.id)}

@@ -21,7 +21,6 @@ export default function ModalEditarMuestra({
   onSuccess,
 }: ModalEditarMuestraProps) {
   const [formData, setFormData] = useState({
-    estado: 'pendiente',
     observaciones: '',
   });
   const [detalles, setDetalles] = useState<any[]>([]);
@@ -33,7 +32,6 @@ export default function ModalEditarMuestra({
   useEffect(() => {
     if (muestra && isOpen) {
       setFormData({
-        estado: muestra.estado || 'pendiente',
         observaciones: muestra.observaciones || '',
       });
       cargarDetalles(muestra.id);
@@ -117,38 +115,20 @@ export default function ModalEditarMuestra({
             </div>
           )}
 
-          {/* Estado y Observaciones Generales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estado General
-              </label>
-              <select
-                value={formData.estado}
-                onChange={(e) =>
-                  setFormData({ ...formData, estado: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none bg-white"
-              >
-                <option value="pendiente">Pendiente</option>
-                <option value="en_proceso">En Proceso</option>
-                <option value="completado">Completado</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Observaciones Generales
-              </label>
-              <input
-                type="text"
-                value={formData.observaciones}
-                onChange={(e) =>
-                  setFormData({ ...formData, observaciones: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-                placeholder="Notas generales..."
-              />
-            </div>
+          {/* Observaciones Generales */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Observaciones Generales
+            </label>
+            <input
+              type="text"
+              value={formData.observaciones}
+              onChange={(e) =>
+                setFormData({ ...formData, observaciones: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
+              placeholder="Notas generales..."
+            />
           </div>
 
           <div className="border-t pt-4">
@@ -227,7 +207,7 @@ export default function ModalEditarMuestra({
           <button
             onClick={handleSubmit}
             disabled={cargando || loadingDetalles}
-            className="flex items-center space-x-2 px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="flex items-center space-x-2 px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {cargando ? (
               <>

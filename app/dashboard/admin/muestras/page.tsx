@@ -9,6 +9,7 @@ import ModalEditarMuestra from '@/app/components/ModalEditarMuestra';
 import api from '@/app/lib/api';
 import { Plus, AlertCircle, Filter, Trash2, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
 
 export default function MuestrasAdminPage() {
   const [muestras, setMuestras] = useState<any[]>([]);
@@ -28,15 +29,13 @@ export default function MuestrasAdminPage() {
 
   useEffect(() => {
     obtenerMuestras();
-  }, [filtro]);
+  }, []);
 
   const obtenerMuestras = async () => {
     try {
       setCargando(true);
-      const url = filtro === 'todos' ? '/muestras' : `/muestras/filtro/${filtro}`;
-      const response = await api.get(url);
+      const response = await api.get('/muestras');
       setMuestras(response.data);
-      setCurrentPage(1);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al cargar muestras');
     } finally {
@@ -47,6 +46,12 @@ export default function MuestrasAdminPage() {
   const muestrasFiltradas = muestras.filter((muestra) => {
     const query = searchQuery.toLowerCase();
     
+    // Filtro por tipo de muestra
+    if (filtro !== 'todos') {
+      const tieneTipo = muestra.tipos_muestras?.some((t: any) => t.tipo_muestra === filtro);
+      if (!tieneTipo) return false;
+    }
+
     // Buscar en tipos de muestras
     const tiposString = muestra.tipos_muestras 
       ? muestra.tipos_muestras.map((t: any) => t.tipo_muestra).join(' ') 
@@ -72,14 +77,22 @@ export default function MuestrasAdminPage() {
   );
 
   const eliminarMuestra = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar esta muestra?')) return;
+    const result = await showConfirm(
+      '¿Eliminar muestra?',
+      '¿Estás seguro de que deseas eliminar esta muestra? Esta acción no se puede deshacer.',
+      'Sí, eliminar',
+      'Cancelar'
+    );
+
+    if (!result.isConfirmed) return;
 
     try {
       setCargandoEliminar(id);
       await api.delete(`/muestras/${id}`);
       setMuestras(muestras.filter((m) => m.id !== id));
+      showSuccess('Muestra eliminada', 'La muestra ha sido eliminada correctamente');
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Error al eliminar muestra');
+      showError('Error al eliminar', err.response?.data?.error || 'No se pudo eliminar la muestra');
     } finally {
       setCargandoEliminar(null);
     }
@@ -92,14 +105,10 @@ export default function MuestrasAdminPage() {
     { label: 'Heces', value: 'heces' },
   ];
 
-  const getEstadoBadge = (estado: string) => {
-    const badges: any = {
-      pendiente: 'bg-yellow-100 text-yellow-800',
-      en_proceso: 'bg-brand-100 text-brand-800',
-      completado: 'bg-green-100 text-green-800',
-    };
-    return badges[estado] || 'bg-gray-100 text-gray-800';
-  };
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtro, searchQuery, fechaInicio, fechaFin]);
 
   return (
     <ProtectedRoute requiredRole="admin">
@@ -108,7 +117,9 @@ export default function MuestrasAdminPage() {
         <div className="flex justify-between items-center flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Gestión de Muestras</h1>
-            <p className="text-gray-600 mt-2">Total de muestras: {muestras.length}</p>
+            <p className="text-gray-600 mt-2">
+              Mostrando {muestrasFiltradas.length} de {muestras.length} muestras
+            </p>
           </div>
 
           <button
@@ -141,7 +152,7 @@ export default function MuestrasAdminPage() {
         {/* Buscador + fechas */}
         <div className="bg-white rounded-lg shadow p-4 space-y-4">
           <SearchBar
-            placeholder="Buscar por paciente, cédula o tipo..."
+            placeholder="Buscar por paciente, cédula o ID..."
             value={searchQuery}
             onSearch={setSearchQuery}
             className="placeholder-gray-700"
@@ -187,20 +198,19 @@ export default function MuestrasAdminPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipos de Muestras</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {cargando ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center">
+                    <td colSpan={5} className="px-6 py-4 text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
                     </td>
                   </tr>
                 ) : currentMuestras.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                       No se encontraron muestras
                     </td>
                   </tr>
@@ -235,11 +245,6 @@ export default function MuestrasAdminPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(m.fecha_toma).toLocaleDateString('es-ES')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoBadge(m.estado)}`}>
-                          {m.estado === 'en_proceso' ? 'En Proceso' : m.estado}
-                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-3">

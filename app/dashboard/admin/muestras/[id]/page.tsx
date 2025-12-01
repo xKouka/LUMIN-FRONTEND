@@ -6,6 +6,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import api from '@/app/lib/api';
 import { Download, AlertCircle, ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { showError } from '@/app/utils/sweetalert';
 
 export default function DetallesMuestraPage() {
   const params = useParams();
@@ -57,7 +58,7 @@ export default function DetallesMuestraPage() {
       
     } catch (err: any) {
       console.error('Error al descargar PDF:', err);
-      alert('Error al generar PDF');
+      showError('Error al generar PDF', err.response?.data?.error || 'No se pudo generar el archivo PDF');
     } finally {
       setDescargandoPDF(false);
     }
@@ -93,14 +94,7 @@ export default function DetallesMuestraPage() {
     );
   }
 
-  const getEstadoBadge = (estado: string) => {
-    const badges: any = {
-      pendiente: 'bg-yellow-100 text-yellow-800',
-      en_proceso: 'bg-brand-100 text-brand-800',
-      completado: 'bg-green-100 text-green-800',
-    };
-    return badges[estado] || 'bg-gray-100 text-gray-800';
-  };
+
 
   return (
     <ProtectedRoute>
@@ -153,12 +147,6 @@ export default function DetallesMuestraPage() {
               <p className="text-lg font-semibold text-gray-900">
                 {new Date(muestra.fecha_toma).toLocaleDateString('es-ES')}
               </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Estado</p>
-              <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium capitalize ${getEstadoBadge(muestra.estado)}`}>
-                {muestra.estado === 'en_proceso' ? 'En Proceso' : muestra.estado}
-              </span>
             </div>
           </div>
 

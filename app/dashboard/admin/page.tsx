@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
+import ModalReportes from '@/app/components/ModalReportes';
 import api from '@/app/lib/api';
-import { Users, Droplets, Package, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Droplets, Package, TrendingUp, AlertCircle, FileText } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -14,8 +15,10 @@ export default function AdminDashboard() {
     productosInventario: 0,
     resultadosHoy: 0,
   });
+  const [lowStockItems, setLowStockItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modalReportesAbierto, setModalReportesAbierto] = useState(false);
 
   useEffect(() => {
     obtenerEstadisticas();
@@ -37,9 +40,7 @@ export default function AdminDashboard() {
       const inventario = inventarioRes.data;
 
       // Calcular estadísticas
-      const muestrasPendientes = muestras.filter(
-        (m: any) => m.estado === 'pendiente' || m.estado === 'en_proceso'
-      ).length;
+      const totalMuestras = muestras.length;
 
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
@@ -50,9 +51,13 @@ export default function AdminDashboard() {
         return fechaResultado.getTime() === hoy.getTime();
       }).length;
 
+      // Filtrar productos con stock bajo
+      const lowStock = inventario.filter((item: any) => item.cantidad <= (item.cantidad_minima || 5));
+      setLowStockItems(lowStock);
+
       setStats({
         totalPacientes: pacientes.length,
-        muestrasPendientes,
+        muestrasPendientes: totalMuestras,
         productosInventario: inventario.length,
         resultadosHoy,
       });
@@ -73,12 +78,12 @@ export default function AdminDashboard() {
       borderColor: 'border-brand-500',
     },
     {
-      label: 'Muestras Pendientes',
+      label: 'Total Muestras',
       value: stats.muestrasPendientes,
       icon: Droplets,
-      color: 'bg-yellow-100',
-      textColor: 'text-yellow-600',
-      borderColor: 'border-yellow-500',
+      color: 'bg-blue-100',
+      textColor: 'text-blue-600',
+      borderColor: 'border-blue-500',
     },
     {
       label: 'Productos Inventario',
@@ -126,6 +131,41 @@ export default function AdminDashboard() {
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
             <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* Low Stock Alert */}
+        {!loading && lowStockItems.length > 0 && (
+          <div className="bg-[#FFF8F0] border-l-[6px] border-[#FF5722] border-y border-r border-[#FFCCBC] p-4 rounded-r-lg shadow-sm mb-6">
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-[#FF5722]" aria-hidden="true" />
+                <h3 className="text-sm font-medium text-[#BF360C]">
+                  Alerta de Inventario Bajo ({lowStockItems.length} productos)
+                </h3>
+              </div>
+              
+              <div className="ml-7">
+                <ul className="list-disc space-y-1 text-sm text-[#D84315]">
+                  {lowStockItems.slice(0, 3).map((item) => (
+                    <li key={item.id}>
+                      <span className="font-medium">{item.nombre_producto}</span>: {item.cantidad} unidades (Mínimo: {item.cantidad_minima || 5})
+                    </li>
+                  ))}
+                  {lowStockItems.length > 3 && (
+                    <li>...y {lowStockItems.length - 3} más</li>
+                  )}
+                </ul>
+                
+                <button
+                  type="button"
+                  onClick={handleActualizarInventario}
+                  className="mt-3 text-sm font-medium text-[#E64A19] hover:text-[#BF360C] hover:underline flex items-center"
+                >
+                  Ver inventario completo &rarr;
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -203,6 +243,13 @@ export default function AdminDashboard() {
                 <Package className="w-5 h-5" />
                 <span>Actualizar Inventario</span>
               </button>
+              <button
+                onClick={() => setModalReportesAbierto(true)}
+                className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium flex items-center justify-center space-x-2"
+              >
+                <FileText className="w-5 h-5" />
+                <span>Generar Reportes</span>
+              </button>
             </div>
           </div>
 
@@ -223,14 +270,14 @@ export default function AdminDashboard() {
                 </span>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <Droplets className="w-5 h-5 text-yellow-600" />
+                  <Droplets className="w-5 h-5 text-blue-600" />
                   <span className="text-sm font-medium text-gray-700">
-                    Muestras en Proceso
+                    Total Muestras
                   </span>
                 </div>
-                <span className="text-lg font-bold text-yellow-600">
+                <span className="text-lg font-bold text-blue-600">
                   {stats.muestrasPendientes}
                 </span>
               </div>
@@ -250,6 +297,12 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Reportes */}
+      <ModalReportes 
+        isOpen={modalReportesAbierto} 
+        onClose={() => setModalReportesAbierto(false)} 
+      />
     </ProtectedRoute>
   );
 }

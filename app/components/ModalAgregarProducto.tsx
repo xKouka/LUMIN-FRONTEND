@@ -183,7 +183,7 @@ export default function ModalAgregarProducto({
             <button
               type="submit"
               disabled={cargando}
-              className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
+              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
             >
               {cargando ? 'Agregando...' : 'Agregar Producto'}
             </button>

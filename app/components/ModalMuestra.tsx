@@ -45,10 +45,15 @@ export default function ModalMuestra({ isOpen, onClose, onSuccess }: ModalMuestr
     setCargando(true);
 
     try {
+      // Transformar el formato para que coincida con lo que espera el backend
       await api.post('/muestras', {
         paciente_id: parseInt(formData.paciente_id),
-        tipo_examen: formData.tipo_examen,
-        observaciones: formData.observaciones,
+        observaciones: formData.observaciones || null,
+        detalles: [{
+          tipo_muestra: formData.tipo_examen,
+          resultados: {},
+          observaciones: ''
+        }]
       });
 
       setFormData({
@@ -162,7 +167,7 @@ export default function ModalMuestra({ isOpen, onClose, onSuccess }: ModalMuestr
             <button
               type="submit"
               disabled={cargando}
-              className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
+              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
             >
               {cargando ? 'Guardando...' : 'Registrar Muestra'}
             </button>

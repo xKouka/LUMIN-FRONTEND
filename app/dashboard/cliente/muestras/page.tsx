@@ -18,11 +18,7 @@ export default function MuestrasClientePage() {
   const obtenerMuestras = async () => {
     try {
       setCargando(true);
-      const url =
-        filtro === 'todos'
-          ? '/muestras'
-          : `/muestras/filtro/${filtro}`;
-      const response = await api.get(url);
+const response = await api.get('/muestras/mis-muestras');
       setMuestras(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al cargar muestras');
@@ -68,7 +64,7 @@ export default function MuestrasClientePage() {
               onClick={() => setFiltro(tipo.value)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filtro === tipo.value
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-brand-500 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-brand-300'
               }`}
             >
