@@ -19,6 +19,7 @@ export default function ModalEditarPaciente({
 }: ModalEditarPacienteProps) {
   const [formData, setFormData] = useState({
     nombre: '',
+    apellido: '',
     cedula: '',
     fecha_nacimiento: '',
     genero: '',
@@ -32,6 +33,7 @@ export default function ModalEditarPaciente({
     if (paciente && isOpen) {
       setFormData({
         nombre: paciente.nombre || '',
+        apellido: paciente.apellido || '',
         cedula: paciente.cedula || paciente.rut || '',
         fecha_nacimiento: paciente.fecha_nacimiento || '',
         genero: paciente.genero || '',
@@ -44,11 +46,39 @@ export default function ModalEditarPaciente({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validar que el nombre solo contenga letras, espacios y Ñ
+    const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (formData.nombre && !nombreRegex.test(formData.nombre)) {
+      setError('El nombre solo puede contener letras y espacios');
+      return;
+    }
+
+    // Validar que el apellido solo contenga letras, espacios y Ñ
+    const apellidoRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (formData.apellido && !apellidoRegex.test(formData.apellido)) {
+      setError('El apellido solo puede contener letras y espacios');
+      return;
+    }
+
+    // Validar género si está presente
+    if (formData.genero && !['masculino', 'femenino'].includes(formData.genero)) {
+      setError('El género debe ser masculino o femenino');
+      return;
+    }
+
+    // Validar teléfono si está presente
+    if (formData.telefono && !/^[0-9+\s-]+$/.test(formData.telefono)) {
+      setError('El teléfono solo puede contener números, espacios, + y -');
+      return;
+    }
+
     setCargando(true);
 
     try {
       await api.put(`/pacientes/${paciente.id}`, {
         nombre: formData.nombre,
+        apellido: formData.apellido,
         cedula: formData.cedula,
         rut: formData.cedula,
         fecha_nacimiento: formData.fecha_nacimiento,
@@ -105,13 +135,29 @@ export default function ModalEditarPaciente({
           {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre Completo *
+              Nombre *
             </label>
             <input
               type="text"
               value={formData.nombre}
               onChange={(e) =>
                 setFormData({ ...formData, nombre: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
+              required
+            />
+          </div>
+
+          {/* Apellido */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Apellido *
+            </label>
+            <input
+              type="text"
+              value={formData.apellido}
+              onChange={(e) =>
+                setFormData({ ...formData, apellido: e.target.value })
               }
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
               required
@@ -170,7 +216,6 @@ export default function ModalEditarPaciente({
               <option value="">Selecciona...</option>
               <option value="masculino">Masculino</option>
               <option value="femenino">Femenino</option>
-              <option value="otro">Otro</option>
             </select>
           </div>
 

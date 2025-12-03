@@ -27,7 +27,7 @@ export default function Navbar() {
               <span className="text-white font-bold">LC</span>
             </div>
             <span className="text-xl font-bold text-gray-900 hidden sm:inline">
-              Lab Clínico
+              L.U.M.I.N
             </span>
           </Link>
 

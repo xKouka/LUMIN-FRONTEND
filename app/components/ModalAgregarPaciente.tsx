@@ -41,8 +41,22 @@ export default function ModalAgregarPaciente({
       return;
     }
 
+    // Validar que el nombre solo contenga letras, espacios y Ñ
+    const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (!nombreRegex.test(formData.nombre)) {
+      setError('El nombre solo puede contener letras y espacios');
+      return;
+    }
+
     if (!formData.apellido.trim()) {
       setError('El apellido es requerido');
+      return;
+    }
+
+    // Validar que el apellido solo contenga letras, espacios y Ñ
+    const apellidoRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (!apellidoRegex.test(formData.apellido)) {
+      setError('El apellido solo puede contener letras y espacios');
       return;
     }
 
@@ -65,6 +79,18 @@ export default function ModalAgregarPaciente({
 
     if (!formData.fecha_nacimiento) {
       setError('La fecha de nacimiento es requerida');
+      return;
+    }
+
+    // Validar género si está presente
+    if (formData.genero && !['masculino', 'femenino'].includes(formData.genero)) {
+      setError('El género debe ser masculino o femenino');
+      return;
+    }
+
+    // Validar teléfono si está presente
+    if (formData.telefono && !/^[0-9+\s-]+$/.test(formData.telefono)) {
+      setError('El teléfono solo puede contener números, espacios, + y -');
       return;
     }
 
@@ -419,7 +445,6 @@ export default function ModalAgregarPaciente({
               <option value="">Selecciona...</option>
               <option value="masculino">Masculino</option>
               <option value="femenino">Femenino</option>
-              <option value="otro">Otro</option>
             </select>
           </div>
 
