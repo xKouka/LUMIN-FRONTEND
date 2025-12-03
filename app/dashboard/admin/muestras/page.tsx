@@ -7,7 +7,7 @@ import Pagination from '@/app/components/Pagination';
 import ModalMuestraAvanzada from '@/app/components/ModalMuestraAvanzada';
 import ModalEditarMuestra from '@/app/components/ModalEditarMuestra';
 import api from '@/app/lib/api';
-import { Plus, AlertCircle, Filter, Trash2, FileText } from 'lucide-react';
+import { Plus, AlertCircle, Filter, Trash2, FileText, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
 
@@ -24,6 +24,7 @@ export default function MuestrasAdminPage() {
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [muestraSeleccionada, setMuestraSeleccionada] = useState<any>(null);
   const [cargandoEliminar, setCargandoEliminar] = useState<number | null>(null);
+  const [cargandoPago, setCargandoPago] = useState<number | null>(null);
 
   const itemsPerPage = 10;
 
@@ -45,7 +46,7 @@ export default function MuestrasAdminPage() {
 
   const muestrasFiltradas = muestras.filter((muestra) => {
     const query = searchQuery.toLowerCase();
-    
+
     // Filtro por tipo de muestra
     if (filtro !== 'todos') {
       const tieneTipo = muestra.tipos_muestras?.some((t: any) => t.tipo_muestra === filtro);
@@ -53,8 +54,8 @@ export default function MuestrasAdminPage() {
     }
 
     // Buscar en tipos de muestras
-    const tiposString = muestra.tipos_muestras 
-      ? muestra.tipos_muestras.map((t: any) => t.tipo_muestra).join(' ') 
+    const tiposString = muestra.tipos_muestras
+      ? muestra.tipos_muestras.map((t: any) => t.tipo_muestra).join(' ')
       : '';
 
     const matchesSearch =
@@ -98,6 +99,27 @@ export default function MuestrasAdminPage() {
     }
   };
 
+  const togglePagado = async (id: number, pagadoActual: boolean) => {
+    try {
+      setCargandoPago(id);
+      await api.put(`/muestras/${id}`, { pagado: !pagadoActual });
+
+      // Actualizar el estado local
+      setMuestras(muestras.map(m =>
+        m.id === id ? { ...m, pagado: !pagadoActual } : m
+      ));
+
+      showSuccess(
+        pagadoActual ? 'Marcada como NO pagada' : 'Marcada como PAGADA',
+        `El estado de pago de la muestra ha sido actualizado`
+      );
+    } catch (err: any) {
+      showError('Error', err.response?.data?.error || 'No se pudo actualizar el estado de pago');
+    } finally {
+      setCargandoPago(null);
+    }
+  };
+
   const tiposExamen = [
     { label: 'Todos', value: 'todos' },
     { label: 'Sangre', value: 'sangre' },
@@ -137,11 +159,10 @@ export default function MuestrasAdminPage() {
             <button
               key={tipo.value}
               onClick={() => setFiltro(tipo.value)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filtro === tipo.value
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtro === tipo.value
                   ? 'bg-brand-900 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-brand-300'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4 inline mr-2" />
               {tipo.label}
@@ -198,19 +219,20 @@ export default function MuestrasAdminPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipos de Muestras</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado de Pago</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {cargando ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center">
+                    <td colSpan={6} className="px-6 py-4 text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
                     </td>
                   </tr>
                 ) : currentMuestras.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                       No se encontraron muestras
                     </td>
                   </tr>
@@ -228,12 +250,12 @@ export default function MuestrasAdminPage() {
                         <div className="flex flex-wrap gap-1">
                           {m.tipos_muestras && m.tipos_muestras.length > 0 ? (
                             m.tipos_muestras.map((t: any) => (
-                              <span 
-                                key={t.id} 
+                              <span
+                                key={t.id}
                                 className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
-                                  ${t.tipo_muestra === 'sangre' ? 'bg-red-100 text-red-800' : 
-                                    t.tipo_muestra === 'orina' ? 'bg-yellow-100 text-yellow-800' : 
-                                    'bg-amber-100 text-amber-800'}`}
+                                  ${t.tipo_muestra === 'sangre' ? 'bg-red-100 text-red-800' :
+                                    t.tipo_muestra === 'orina' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-amber-100 text-amber-800'}`}
                               >
                                 {t.tipo_muestra}
                               </span>
@@ -245,6 +267,29 @@ export default function MuestrasAdminPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(m.fecha_toma).toLocaleDateString('es-ES')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => togglePagado(m.id, m.pagado)}
+                          disabled={cargandoPago === m.id}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${m.pagado
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                              : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={m.pagado ? 'Click para marcar como NO pagada' : 'Click para marcar como PAGADA'}
+                        >
+                          {cargandoPago === m.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1.5"></div>
+                              Actualizando...
+                            </>
+                          ) : (
+                            <>
+                              <DollarSign className="w-3.5 h-3.5 mr-1" />
+                              {m.pagado ? 'Pagada' : 'No Pagada'}
+                            </>
+                          )}
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-3">
@@ -287,7 +332,7 @@ export default function MuestrasAdminPage() {
               </tbody>
             </table>
           </div>
-          
+
           {/* Paginación */}
           {muestrasFiltradas.length > itemsPerPage && (
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">

@@ -9,7 +9,7 @@ export default function ProtectedRoute({
   requiredRole,
 }: {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'cliente';
+  requiredRole?: 'admin' | 'cliente' | 'super_admin';
 }) {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -27,12 +27,32 @@ export default function ProtectedRoute({
     try {
       const usuario = JSON.parse(usuarioJSON);
 
-      if (requiredRole && usuario.rol !== requiredRole) {
-        router.push('/dashboard');
-        return;
+      if (requiredRole) {
+        // Super admin puede acceder a todo
+        if (usuario.rol === 'super_admin') {
+          setIsAuthorized(true);
+        } 
+        // Admin solo puede acceder a rutas de admin
+        else if (requiredRole === 'admin' && usuario.rol === 'admin') {
+          setIsAuthorized(true);
+        }
+        // Cliente solo puede acceder a rutas de cliente
+        else if (requiredRole === 'cliente' && usuario.rol === 'cliente') {
+          setIsAuthorized(true);
+        }
+        // Super admin solo puede acceder rutas de super_admin
+        else if (requiredRole === 'super_admin' && usuario.rol !== 'super_admin') {
+          router.push('/dashboard');
+          return;
+        }
+        // Si no cumple ninguna condición, redirigir
+        else {
+          router.push('/dashboard');
+          return;
+        }
+      } else {
+        setIsAuthorized(true);
       }
-
-      setIsAuthorized(true);
     } catch (error) {
       router.push('/login');
     } finally {

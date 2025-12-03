@@ -8,7 +8,7 @@ import {
   Users,
   Droplets,
   Package,
-  LogOut,
+  Shield,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -17,48 +17,84 @@ export default function Sidebar() {
     ? JSON.parse(Cookies.get("usuario")!)
     : null;
   const isAdmin = usuario?.rol === "admin";
+  const isSuperAdmin = usuario?.rol === "super_admin";
 
-  const links = isAdmin
-    ? [
-        {
-          href: "/dashboard/admin",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-        },
-        {
-          href: "/dashboard/admin/pacientes",
-          label: "Pacientes",
-          icon: Users,
-        },
-        {
-          href: "/dashboard/admin/muestras",
-          label: "Muestras",
-          icon: Droplets,
-        },
-        {
-          href: "/dashboard/admin/inventario",
-          label: "Inventario",
-          icon: Package,
-        },
-      ]
-    : [
-        {
-          href: "/dashboard/cliente",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-        },
-      ];
+  // Menú para SUPER ADMIN (todas las opciones)
+  const menuSuperAdmin = [
+    {
+      href: "/dashboard/super-admin",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      href: "/dashboard/admin/pacientes",
+      label: "Pacientes",
+      icon: Users,
+    },
+    {
+      href: "/dashboard/admin/muestras",
+      label: "Muestras",
+      icon: Droplets,
+    },
+    {
+      href: "/dashboard/admin/inventario",
+      label: "Inventario",
+      icon: Package,
+    },
+  ];
+
+  // Menú para ADMIN
+  const menuAdmin = [
+    {
+      href: "/dashboard/admin",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      href: "/dashboard/admin/pacientes",
+      label: "Pacientes",
+      icon: Users,
+    },
+    {
+      href: "/dashboard/admin/muestras",
+      label: "Muestras",
+      icon: Droplets,
+    },
+    {
+      href: "/dashboard/admin/inventario",
+      label: "Inventario",
+      icon: Package,
+    },
+  ];
+
   // Menú para CLIENTE (solo muestras)
   const menuCliente = [
-        {
-      href: '/dashboard/cliente/muestras', 
-          icon: Droplets,
-      label: 'Mis Muestras', 
-        },
-      ];
+    {
+      href: "/dashboard/cliente",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      href: "/dashboard/cliente/muestras",
+      label: "Mis Muestras",
+      icon: Droplets,
+    },
+  ];
+
+  // Seleccionar menú según rol
+  const links = isSuperAdmin ? menuSuperAdmin : isAdmin ? menuAdmin : menuCliente;
+
   return (
     <aside className="hidden md:block w-64 bg-brand-900 text-white min-h-screen sticky top-16">
       <div className="p-6">
+        {/* Indicador de rol para Super Admin */}
+        {isSuperAdmin && (
+          <div className="mb-4 p-3 bg-purple-700 rounded-lg flex items-center space-x-2">
+            <Shield className="w-5 h-5 text-yellow-300" />
+            <span className="text-sm font-semibold text-yellow-300">Super Admin</span>
+          </div>
+        )}
+
         <nav className="space-y-2">
           {links.map((link) => {
             const Icon = link.icon;

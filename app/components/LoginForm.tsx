@@ -50,13 +50,13 @@ export default function LoginForm() {
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <div className="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center">
-            <LogIn className="w-6 h-6 text-white" />
+            <img src="/logo.png" alt="Logo" className="w-6 h-6" />
           </div>
         </div>
 
         {/* Título */}
         <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">
-          Laboratorio Clínico
+          L.U.M.I.N
         </h1>
         <p className="text-center text-gray-600 mb-8">
           Inicia sesión en tu cuenta
@@ -75,7 +75,7 @@ export default function LoginForm() {
           {/* Email o Usuario */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Correo Electrónico o Usuario (Cédula)
+              Usuario
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
@@ -88,9 +88,6 @@ export default function LoginForm() {
                 required
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Puedes usar tu email o tu número de cédula como usuario
-            </p>
           </div>
 
           {/* Contraseña */}
@@ -113,12 +110,12 @@ export default function LoginForm() {
 
           {/* Submit Button */}
           <div>
-          <button
+            <button
               type="submit"
-            onClick={handleSubmit}
-            disabled={cargando}
+              onClick={handleSubmit}
+              disabled={cargando}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-500 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
+            >
               {cargando ? (
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -129,8 +126,8 @@ export default function LoginForm() {
                 </span>
               )}
               {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-          </button>
-        </div>
+            </button>
+          </div>
         </div>
 
         {/* Back to Home */}

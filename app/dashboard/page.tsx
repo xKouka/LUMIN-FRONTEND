@@ -9,7 +9,9 @@ export default function DashboardPage() {
   const usuario = Cookies.get('usuario') ? JSON.parse(Cookies.get('usuario')!) : null;
 
   useEffect(() => {
-    if (usuario?.rol === 'admin') {
+    if (usuario?.rol === 'super_admin') {
+      router.push('/dashboard/super-admin');
+    } else if (usuario?.rol === 'admin') {
       router.push('/dashboard/admin');
     } else {
       router.push('/dashboard/cliente');

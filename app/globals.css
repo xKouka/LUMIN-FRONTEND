@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  scroll-behavior: smooth;
 }
 
 @theme inline {
@@ -155,4 +156,23 @@ textarea::-ms-input-placeholder {
   textarea::placeholder {
     color: #b0b0b0 !important; /* Gris claro para placeholders en modo oscuro */
   }
+}
+
+/* ============================================
+   TOAST NOTIFICATION ANIMATION
+   ============================================ */
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }

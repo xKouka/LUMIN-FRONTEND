@@ -32,7 +32,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
+                <img src="/laboratorio-logo.png" alt="Logo" className="w-6 h-6" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Laboratorio Clínico Blanca Trinidad</h1>
@@ -84,36 +84,24 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Image Column */}
             <div className="relative h-96 rounded-xl overflow-hidden shadow-2xl" data-aos="fade-right">
-              <div className="w-full h-full bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center">
-                <Users className="w-32 h-32 text-brand-500 opacity-50" />
-              </div>
+              <img src="/bionalista.jpg" alt="Logo" className="object-fill h-full w-full" />
             </div>
-            
+
             {/* Text Column */}
             <div data-aos="fade-left">
               <h3 className="text-4xl font-bold text-gray-900 mb-6">Sobre Nosotros</h3>
               <p className="text-lg text-gray-700 mb-4 leading-relaxed">
-                El <strong>Laboratorio Clínico Blanca Trinidad</strong> es un centro de excelencia en análisis clínicos, 
-                comprometido con la salud y el bienestar de nuestra comunidad en Puntas de Piedras y sus alrededores.
+                El <strong>Laboratorio Clínico Blanca Trinidad</strong> es un centro de excelencia en análisis clínicos,
+                comprometido con la salud y el bienestar de nuestra comunidad en El Guamache y sus alrededores.
               </p>
               <p className="text-lg text-gray-700 mb-4 leading-relaxed">
-                Con años de experiencia en el campo de la medicina diagnóstica, nuestro equipo de profesionales altamente 
-                capacitados utiliza tecnología de punta para garantizar resultados precisos y confiables.
-              </p>
-              <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-                Nos especializamos en ofrecer un servicio personalizado, rápido y de calidad, entendiendo que cada paciente 
+                Nos especializamos en ofrecer un servicio personalizado, rápido y de calidad, entendiendo que cada paciente
                 merece atención profesional y resultados que contribuyan a su diagnóstico y tratamiento médico.
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-brand-50 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-brand-700 mb-1">10+</div>
-                  <div className="text-sm text-gray-600">Años de experiencia</div>
-                </div>
-                <div className="bg-brand-50 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-brand-700 mb-1">50+</div>
-                  <div className="text-sm text-gray-600">Tipos de exámenes</div>
-                </div>
-              </div>
+              <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+                El laboratorio fue fundado por la bionalista Daniela Velazquez quien tirstemente fallecio este mismo año,
+                desde estonces Diana velazca es la bionalista a cargo del laboratorio.
+              </p>
             </div>
           </div>
         </div>
@@ -135,15 +123,6 @@ export default function LandingPage() {
                 <Heart className="w-8 h-8 text-red-600" />
               </div>
               <h4 className="text-2xl font-bold text-gray-900 mb-4 text-center">Análisis de Sangre</h4>
-              <ul className="text-gray-600 space-y-2 mb-6">
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Hemograma completo</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Perfil lipídico</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Glucosa y diabetes</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Función hepática y renal</li>
-              </ul>
-              <button onClick={handleButtonClick} className="w-full bg-brand-500 text-white py-3 rounded-lg hover:bg-brand-700 transition-colors">
-                Más Información
-              </button>
             </div>
 
             {/* Urine Tests */}
@@ -152,15 +131,6 @@ export default function LandingPage() {
                 <Droplet className="w-8 h-8 text-yellow-600" />
               </div>
               <h4 className="text-2xl font-bold text-gray-900 mb-4 text-center">Análisis de Orina</h4>
-              <ul className="text-gray-600 space-y-2 mb-6">
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Examen general de orina</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Cultivo de orina</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Detección de drogas</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Proteínas y microalbúmina</li>
-              </ul>
-              <button onClick={handleButtonClick} className="w-full bg-brand-500 text-white py-3 rounded-lg hover:bg-brand-700 transition-colors">
-                Más Información
-              </button>
             </div>
 
             {/* STD Tests */}
@@ -169,15 +139,6 @@ export default function LandingPage() {
                 <FileText className="w-8 h-8 text-brand-700" />
               </div>
               <h4 className="text-2xl font-bold text-gray-900 mb-4 text-center">Pruebas de ETS</h4>
-              <ul className="text-gray-600 space-y-2 mb-6">
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Panel completo de ETS</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>VIH y Hepatitis</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Sífilis y Gonorrea</li>
-                <li className="flex items-center"><span className="w-2 h-2 bg-brand-500 rounded-full mr-3"></span>Resultados confidenciales</li>
-              </ul>
-              <button onClick={handleButtonClick} className="w-full bg-brand-500 text-white py-3 rounded-lg hover:bg-brand-700 transition-colors">
-                Más Información
-              </button>
             </div>
           </div>
         </div>
@@ -193,8 +154,8 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-8 items-start">
             {/* Map */}
             <div className="rounded-xl overflow-hidden shadow-lg h-96" data-aos="fade-right">
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3933.123456789!2d-64.123456!3d10.123456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTDCsDA3JzI0LjQiTiA2NMKwMDcnMjQuNCJX!5e0!3m2!1ses!2sve!4v1234567890123!5m2!1ses!2sve"
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1164.8013042483783!2d-64.06328156141868!3d10.89452290110795!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1ses!2sve!4v1764737153076!5m2!1ses!2sve"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -204,7 +165,7 @@ export default function LandingPage() {
                 title="Ubicación del Laboratorio Clínico Blanca Trinidad"
               ></iframe>
             </div>
-            
+
             {/* Location Info */}
             <div className="space-y-6" data-aos="fade-left">
               <div className="bg-brand-50 p-6 rounded-xl">
@@ -220,7 +181,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-brand-50 p-6 rounded-xl">
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -232,7 +193,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-brand-50 p-6 rounded-xl">
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center flex-shrink-0">

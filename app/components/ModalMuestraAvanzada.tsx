@@ -36,6 +36,7 @@ export default function ModalMuestraAvanzada({
   const [inventario, setInventario] = useState<any[]>([]);
   const [pacienteId, setPacienteId] = useState('');
   const [observacionesGenerales, setObservacionesGenerales] = useState('');
+  const [pagado, setPagado] = useState(false);
   const [detalles, setDetalles] = useState<DetalleMuestra[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
@@ -46,6 +47,7 @@ export default function ModalMuestraAvanzada({
       obtenerInventario();
       setPacienteId('');
       setObservacionesGenerales('');
+      setPagado(false);
       setDetalles([]);
       setError('');
     }
@@ -105,7 +107,7 @@ export default function ModalMuestraAvanzada({
 
   const agregarProducto = (detalleIndex: number, productoId: string) => {
     if (!productoId) return;
-    
+
     const producto = inventario.find(p => p.id === parseInt(productoId));
     if (!producto) return;
 
@@ -113,7 +115,7 @@ export default function ModalMuestraAvanzada({
     const yaExiste = nuevosDetalles[detalleIndex].productos.find(
       p => p.producto_id === parseInt(productoId)
     );
-    
+
     if (yaExiste) {
       alert('Este producto ya está en la lista');
       return;
@@ -125,7 +127,7 @@ export default function ModalMuestraAvanzada({
       cantidad: 1,
       stock: producto.cantidad,
     });
-    
+
     setDetalles(nuevosDetalles);
   };
 
@@ -173,6 +175,7 @@ export default function ModalMuestraAvanzada({
         paciente_id: parseInt(pacienteId),
         observaciones: observacionesGenerales || null,
         detalles: detallesParaEnviar,
+        pagado,
       });
 
       onSuccess();
@@ -244,6 +247,22 @@ export default function ModalMuestraAvanzada({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 placeholder="Observaciones que aplican a toda la prueba..."
               />
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <input
+                type="checkbox"
+                id="pagado"
+                checked={pagado}
+                onChange={(e) => setPagado(e.target.checked)}
+                className="w-5 h-5 text-brand-500 bg-white border-gray-300 rounded focus:ring-brand-500 focus:ring-2 cursor-pointer"
+              />
+              <label htmlFor="pagado" className="text-sm font-semibold text-gray-700 cursor-pointer select-none">
+                ✅ Muestra Pagada
+              </label>
+              <span className="text-xs text-gray-500">
+                (Los clientes solo verán muestras marcadas como pagadas)
+              </span>
             </div>
           </div>
 
