@@ -4,10 +4,14 @@ import Swal from 'sweetalert2';
 const defaultConfig = {
     confirmButtonColor: '#4B9B6E', // brand-500
     cancelButtonColor: '#dc3545',
+    width: '32em', // Slightly larger
     customClass: {
         confirmButton: 'swal-confirm-btn',
         cancelButton: 'swal-cancel-btn',
+        popup: 'swal-user-popup', // Custom class for higher z-index if needed
     },
+    // Ensure it's on top of everything including Radix Dialog (z-50)
+    // SweetAlert default is 1060, but let's be safe if they changed stacking contexts
 };
 
 // Alerta de éxito

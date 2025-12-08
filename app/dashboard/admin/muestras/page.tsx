@@ -2,45 +2,100 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
-import SearchBar from '@/app/components/SearchBar';
 import Pagination from '@/app/components/Pagination';
 import ModalMuestraAvanzada from '@/app/components/ModalMuestraAvanzada';
 import ModalEditarMuestra from '@/app/components/ModalEditarMuestra';
+import ModalVerMuestra from '@/app/components/ModalVerMuestra';
+import ModalInfoPaciente from '@/app/components/ModalInfoPaciente';
 import api from '@/app/lib/api';
-import { Plus, AlertCircle, Filter, Trash2, FileText, DollarSign } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Trash2,
+  FileText,
+  DollarSign,
+  Edit2,
+  Calendar as CalendarIcon,
+  Beaker,
+  TestTube
+} from 'lucide-react';
 import Link from 'next/link';
 import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+// Shadcn UI Components
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function MuestrasAdminPage() {
   const [muestras, setMuestras] = useState<any[]>([]);
-  const [filtro, setFiltro] = useState('todos');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Filtros
+  const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroPago, setFiltroPago] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+
+  // Paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
+  const itemsPerPage = 10;
+
+  // Modals & Actions
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
+  const [modalVerAbierto, setModalVerAbierto] = useState(false);
+  const [modalInfoAbierto, setModalInfoAbierto] = useState(false);
   const [muestraSeleccionada, setMuestraSeleccionada] = useState<any>(null);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
+  const [muestraVerId, setMuestraVerId] = useState<number | null>(null);
   const [cargandoEliminar, setCargandoEliminar] = useState<number | null>(null);
   const [cargandoPago, setCargandoPago] = useState<number | null>(null);
-
-  const itemsPerPage = 10;
 
   useEffect(() => {
     obtenerMuestras();
   }, []);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroTipo, filtroPago, searchQuery, fechaInicio, fechaFin]);
+
   const obtenerMuestras = async () => {
     try {
-      setCargando(true);
+      setLoading(true);
       const response = await api.get('/muestras');
       setMuestras(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al cargar muestras');
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
@@ -48,9 +103,15 @@ export default function MuestrasAdminPage() {
     const query = searchQuery.toLowerCase();
 
     // Filtro por tipo de muestra
-    if (filtro !== 'todos') {
-      const tieneTipo = muestra.tipos_muestras?.some((t: any) => t.tipo_muestra === filtro);
+    if (filtroTipo !== 'todos') {
+      const tieneTipo = muestra.tipos_muestras?.some((t: any) => t.tipo_muestra === filtroTipo);
       if (!tieneTipo) return false;
+    }
+
+    // Filtro por estado de pago
+    if (filtroPago !== 'todos') {
+      const esPagado = filtroPago === 'pagado';
+      if (muestra.pagado !== esPagado) return false;
     }
 
     // Buscar en tipos de muestras
@@ -65,14 +126,21 @@ export default function MuestrasAdminPage() {
       muestra.id.toString().includes(query);
 
     const fechaMuestra = new Date(muestra.fecha_toma);
-    const matchesFechaInicio = !fechaInicio || fechaMuestra >= new Date(fechaInicio);
-    const matchesFechaFin = !fechaFin || fechaMuestra <= new Date(new Date(fechaFin).setHours(23, 59, 59));
+    // Ajuste de fechas para incluir el día completo
+    const fInicio = fechaInicio ? new Date(fechaInicio) : null;
+    if (fInicio) fInicio.setHours(0, 0, 0, 0);
+
+    const fFin = fechaFin ? new Date(fechaFin) : null;
+    if (fFin) fFin.setHours(23, 59, 59, 999);
+
+    const matchesFechaInicio = !fInicio || fechaMuestra >= fInicio;
+    const matchesFechaFin = !fFin || fechaMuestra <= fFin;
 
     return matchesSearch && matchesFechaInicio && matchesFechaFin;
   });
 
   const totalPages = Math.ceil(muestrasFiltradas.length / itemsPerPage);
-  const currentMuestras = muestrasFiltradas.slice(
+  const paginatedMuestras = muestrasFiltradas.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -120,239 +188,306 @@ export default function MuestrasAdminPage() {
     }
   };
 
-  const tiposExamen = [
-    { label: 'Todos', value: 'todos' },
-    { label: 'Sangre', value: 'sangre' },
-    { label: 'Orina', value: 'orina' },
-    { label: 'Heces', value: 'heces' },
-  ];
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filtro, searchQuery, fechaInicio, fechaFin]);
+  const getBadgeColor = (tipo: string) => {
+    switch (tipo?.toLowerCase()) {
+      case 'sangre': return 'bg-red-100 text-red-700 hover:bg-red-200';
+      case 'orina': return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
+      case 'heces': return 'bg-amber-100 text-amber-700 hover:bg-amber-200';
+      default: return 'bg-slate-100 text-slate-700 hover:bg-slate-200';
+    }
+  };
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="max-w-[1900px] mx-auto space-y-6">
+      <div className="flex flex-col gap-6 max-w-[1900px] mx-auto w-full p-4 md:p-6">
+
         {/* Header */}
-        <div className="flex justify-between items-center flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Muestras</h1>
-            <p className="text-gray-600 mt-2">
-              Mostrando {muestrasFiltradas.length} de {muestras.length} muestras
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Gestión de Muestras</h1>
+            <p className="text-muted-foreground mt-1">
+              Registro y control de análisis de laboratorio
             </p>
           </div>
-
-          <button
+          <Button
             onClick={() => setModalAbierto(true)}
-            className="flex items-center space-x-2 bg-brand-500 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+            className="bg-brand-500 hover:bg-brand-700 text-white"
           >
-            <Plus className="w-5 h-5" />
-            <span>Nueva Muestra</span>
-          </button>
+            <Plus className="w-5 h-5 mr-2" />
+            Nueva Muestra
+          </Button>
         </div>
 
-        {/* Filtro por tipo */}
-        <div className="flex gap-2 flex-wrap">
-          {tiposExamen.map((tipo) => (
-            <button
-              key={tipo.value}
-              onClick={() => setFiltro(tipo.value)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filtro === tipo.value
-                  ? 'bg-brand-900 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-brand-300'
-                }`}
-            >
-              <Filter className="w-4 h-4 inline mr-2" />
-              {tipo.label}
-            </button>
-          ))}
-        </div>
+        {/* Filters & Table Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Listado de Muestras</CardTitle>
+            <CardDescription>
+              Total registradas: {muestras.length} | Mostrando: {muestrasFiltradas.length}
+            </CardDescription>
 
-        {/* Buscador + fechas */}
-        <div className="bg-white rounded-lg shadow p-4 space-y-4">
-          <SearchBar
-            placeholder="Buscar por paciente, cédula o ID..."
-            value={searchQuery}
-            onSearch={setSearchQuery}
-            className="placeholder-gray-700"
-          />
+            {/* Filters Toolbar */}
+            <div className="flex flex-col xl:flex-row gap-4 mt-4">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por paciente, cédula o ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
 
-          <div className="flex flex-wrap gap-6">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Fecha inicio</label>
-              <input
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                className="block w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
-              />
+              {/* Type Filter */}
+              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                <SelectTrigger className="w-full xl:w-[180px]">
+                  <SelectValue placeholder="Tipo de Muestra" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los tipos</SelectItem>
+                  <SelectItem value="sangre">Sangre</SelectItem>
+                  <SelectItem value="orina">Orina</SelectItem>
+                  <SelectItem value="heces">Heces</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Payment Filter */}
+              <Select value={filtroPago} onValueChange={setFiltroPago}>
+                <SelectTrigger className="w-full xl:w-[180px]">
+                  <SelectValue placeholder="Estado de Pago" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  <SelectItem value="pagado">Pagado</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Date Filters */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                    className="w-full sm:w-auto"
+                    placeholder="Fecha Inicio"
+                  />
+                </div>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={fechaFin}
+                    onChange={(e) => setFechaFin(e.target.value)}
+                    className="w-full sm:w-auto"
+                    placeholder="Fecha Fin"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Fecha fin</label>
-              <input
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                className="block w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
-              />
-            </div>
-          </div>
-        </div>
+          </CardHeader>
 
-        {/* Error */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
+          <CardContent>
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
+                <Trash2 className="w-4 h-4" /> {/* Fallback icon */}
+                {error}
+              </div>
+            )}
 
-        {/* Tabla */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipos de Muestras</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado de Pago</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {cargando ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
-                    </td>
-                  </tr>
-                ) : currentMuestras.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                      No se encontraron muestras
-                    </td>
-                  </tr>
-                ) : (
-                  currentMuestras.map((m) => (
-                    <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{m.id.toString().padStart(6, '0')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{m.paciente_nombre}</div>
-                        <div className="text-sm text-gray-500">{m.cedula}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {m.tipos_muestras && m.tipos_muestras.length > 0 ? (
-                            m.tipos_muestras.map((t: any) => (
-                              <span
-                                key={t.id}
-                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
-                                  ${t.tipo_muestra === 'sangre' ? 'bg-red-100 text-red-800' :
-                                    t.tipo_muestra === 'orina' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-amber-100 text-amber-800'}`}
-                              >
-                                {t.tipo_muestra}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-gray-400 text-sm italic">Sin detalles</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(m.fecha_toma).toLocaleDateString('es-ES')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => togglePagado(m.id, m.pagado)}
-                          disabled={cargandoPago === m.id}
-                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${m.pagado
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-red-100 text-red-800 hover:bg-red-200'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          title={m.pagado ? 'Click para marcar como NO pagada' : 'Click para marcar como PAGADA'}
-                        >
-                          {cargandoPago === m.id ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1.5"></div>
-                              Actualizando...
-                            </>
-                          ) : (
-                            <>
-                              <DollarSign className="w-3.5 h-3.5 mr-1" />
-                              {m.pagado ? 'Pagada' : 'No Pagada'}
-                            </>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-3">
-                          <Link
-                            href={`/dashboard/admin/muestras/${m.id}`}
-                            className="text-brand-600 hover:text-brand-900"
-                            title="Ver detalles"
-                          >
-                            <FileText className="w-5 h-5" />
-                          </Link>
-                          <button
-                            onClick={() => {
-                              setMuestraSeleccionada(m);
-                              setModalEditarAbierto(true);
-                            }}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Editar"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => eliminarMuestra(m.id)}
-                            disabled={cargandoEliminar === m.id}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                            title="Eliminar"
-                          >
-                            {cargandoEliminar === m.id ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+              </div>
+            ) : paginatedMuestras.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <TestTube className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>No se encontraron muestras que coincidan con los filtros</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Tipos de Muestras</TableHead>
+                      <TableHead>Fecha Toma</TableHead>
+                      <TableHead>Estado Pago</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedMuestras.map((m) => (
+                      <TableRow
+                        key={m.id}
+                        className="cursor-pointer hover:bg-gray-50/80 transition-colors"
+                        onClick={() => {
+                          setClienteSeleccionado(m);
+                          setModalInfoAbierto(true);
+                        }}
+                      >
+                        <TableCell className="font-medium">
+                          #{m.id.toString().padStart(5, '0')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-900">{m.paciente_nombre}</span>
+                            <span className="text-xs text-muted-foreground">{m.cedula}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1.5">
+                            {m.tipos_muestras?.length > 0 ? (
+                              m.tipos_muestras.map((t: any) => (
+                                <Badge
+                                  key={t.id}
+                                  variant="outline"
+                                  className={`capitalize ${getBadgeColor(t.tipo_muestra)}`}
+                                >
+                                  {t.tipo_muestra}
+                                </Badge>
+                              ))
                             ) : (
-                              <Trash2 className="w-5 h-5" />
+                              <span className="text-muted-foreground text-xs italic">Sin especificar</span>
                             )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                            {format(new Date(m.fecha_toma), 'dd/MM/yyyy')}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={m.pagado ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    togglePagado(m.id, m.pagado);
+                                  }}
+                                  disabled={cargandoPago === m.id}
+                                  className={`h-7 px-3 text-xs gap-1.5 rounded-full transition-colors ${m.pagado
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
+                                    : 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200'
+                                    }`}
+                                >
+                                  {cargandoPago === m.id ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+                                  ) : (
+                                    <DollarSign className="w-3.5 h-3.5" />
+                                  )}
+                                  {m.pagado ? 'Pagada' : 'Pendiente'}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{m.pagado ? 'Marcar como Pendiente' : 'Marcar como Pagada'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {/* Ver Detalles */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-brand-600 hover:bg-brand-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setMuestraVerId(m.id);
+                                      setModalVerAbierto(true);
+                                    }}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Ver Detalles</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-          {/* Paginación */}
-          {muestrasFiltradas.length > itemsPerPage && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-          )}
-        </div>
+                            {/* Editar */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setMuestraSeleccionada(m);
+                                      setModalEditarAbierto(true);
+                                    }}
+                                    className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar Muestra</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-        {/* Modal Crear */}
+                            {/* Eliminar */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      eliminarMuestra(m.id);
+                                    }}
+                                    disabled={cargandoEliminar === m.id}
+                                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                                  >
+                                    {cargandoEliminar === m.id ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Eliminar Muestra</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Modals */}
         <ModalMuestraAvanzada
           isOpen={modalAbierto}
           onClose={() => setModalAbierto(false)}
           onSuccess={() => obtenerMuestras()}
         />
 
-        {/* Modal Editar */}
         <ModalEditarMuestra
           isOpen={modalEditarAbierto}
           muestra={muestraSeleccionada}
@@ -361,6 +496,18 @@ export default function MuestrasAdminPage() {
             obtenerMuestras();
             setModalEditarAbierto(false);
           }}
+        />
+
+        <ModalVerMuestra
+          isOpen={modalVerAbierto}
+          muestraId={muestraVerId}
+          onClose={() => setModalVerAbierto(false)}
+        />
+
+        <ModalInfoPaciente
+          isOpen={modalInfoAbierto}
+          onClose={() => setModalInfoAbierto(false)}
+          cliente={clienteSeleccionado}
         />
       </div>
     </ProtectedRoute>

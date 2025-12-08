@@ -2,7 +2,28 @@
 
 import { useState } from 'react';
 import api from '../lib/api';
-import { X, AlertCircle } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
+
+// ShadCN UI
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ModalAgregarProductoProps {
   isOpen: boolean;
@@ -69,127 +90,93 @@ export default function ModalAgregarProducto({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">Agregar Producto</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>Agregar Nuevo Producto</DialogTitle>
+          <DialogDescription>
+            Registra un nuevo material o equipo en el inventario.
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          {/* Nombre Producto */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre del Producto *
-            </label>
-            <input
-              type="text"
-              value={formData.nombre_producto}
-              onChange={(e) =>
-                setFormData({ ...formData, nombre_producto: e.target.value })
-              }
-              placeholder="Tubo de ensayo estéril"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
-            />
+          <div className="space-y-2">
+            <Label htmlFor="nombre">Nombre del Producto</Label>
+            <div className="relative">
+              <Package className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="nombre"
+                value={formData.nombre_producto}
+                onChange={(e) => setFormData({ ...formData, nombre_producto: e.target.value })}
+                placeholder="Ej. Jeringas 5ml"
+                className="pl-8"
+                autoComplete="off"
+              />
+            </div>
           </div>
 
-          {/* Tipo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo *
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="tipo">Tipo</Label>
+            <Select
               value={formData.tipo}
-              onChange={(e) =>
-                setFormData({ ...formData, tipo: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
+              onValueChange={(value) => setFormData({ ...formData, tipo: value })}
             >
-              <option value="">Selecciona un tipo</option>
-              <option value="material">Material de laboratorio</option>
-              <option value="reactivo">Reactivo químico</option>
-              <option value="equipo">Equipo</option>
-              <option value="consumible">Consumible</option>
-              <option value="otro">Otro</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="material">Material de laboratorio</SelectItem>
+                <SelectItem value="reactivo">Reactivo químico</SelectItem>
+                <SelectItem value="equipo">Equipo</SelectItem>
+                <SelectItem value="consumible">Consumible</SelectItem>
+                <SelectItem value="otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Cantidad */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cantidad *
-            </label>
-            <input
-              type="number"
-              value={formData.cantidad}
-              onChange={(e) =>
-                setFormData({ ...formData, cantidad: e.target.value })
-              }
-              placeholder="100"
-              min="0"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cantidad">Cantidad Inicial</Label>
+              <Input
+                id="cantidad"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={formData.cantidad}
+                onChange={(e) => setFormData({ ...formData, cantidad: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="minimo">Stock Mínimo</Label>
+              <Input
+                id="minimo"
+                type="number"
+                min="1"
+                placeholder="5"
+                value={formData.cantidad_minima}
+                onChange={(e) => setFormData({ ...formData, cantidad_minima: e.target.value })}
+              />
+            </div>
           </div>
 
-          {/* Cantidad Mínima */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cantidad Mínima
-            </label>
-            <input
-              type="number"
-              value={formData.cantidad_minima}
-              onChange={(e) =>
-                setFormData({ ...formData, cantidad_minima: e.target.value })
-              }
-              placeholder="5"
-              min="0"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              Se alertará cuando la cantidad sea menor
-            </p>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={cargando}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={cargando}
-              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
-            >
-              {cargando ? 'Agregando...' : 'Agregar Producto'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={cargando} className="bg-brand-500 hover:bg-brand-600">
+              {cargando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {cargando ? 'Guardando...' : 'Guardar Producto'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

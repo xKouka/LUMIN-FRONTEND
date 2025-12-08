@@ -2,7 +2,33 @@
 
 import { useState } from 'react';
 import api from '../lib/api';
-import { X, AlertCircle, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { X, AlertCircle, Eye, EyeOff, Copy, Check, CalendarIcon } from 'lucide-react';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 interface ModalAgregarPacienteProps {
   isOpen: boolean;
@@ -20,7 +46,7 @@ export default function ModalAgregarPaciente({
     apellido: '',
     cedula: '',
     email: '',
-    fecha_nacimiento: '',
+    fecha_nacimiento: undefined as Date | undefined,
     genero: '',
     telefono: '',
     direccion: '',
@@ -41,22 +67,8 @@ export default function ModalAgregarPaciente({
       return;
     }
 
-    // Validar que el nombre solo contenga letras, espacios y Ñ
-    const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-    if (!nombreRegex.test(formData.nombre)) {
-      setError('El nombre solo puede contener letras y espacios');
-      return;
-    }
-
     if (!formData.apellido.trim()) {
       setError('El apellido es requerido');
-      return;
-    }
-
-    // Validar que el apellido solo contenga letras, espacios y Ñ
-    const apellidoRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-    if (!apellidoRegex.test(formData.apellido)) {
-      setError('El apellido solo puede contener letras y espacios');
       return;
     }
 
@@ -70,27 +82,8 @@ export default function ModalAgregarPaciente({
       return;
     }
 
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('El correo electrónico no es válido');
-      return;
-    }
-
     if (!formData.fecha_nacimiento) {
       setError('La fecha de nacimiento es requerida');
-      return;
-    }
-
-    // Validar género si está presente
-    if (formData.genero && !['masculino', 'femenino'].includes(formData.genero)) {
-      setError('El género debe ser masculino o femenino');
-      return;
-    }
-
-    // Validar teléfono si está presente
-    if (formData.telefono && !/^[0-9+\s-]+$/.test(formData.telefono)) {
-      setError('El teléfono solo puede contener números, espacios, + y -');
       return;
     }
 
@@ -98,14 +91,8 @@ export default function ModalAgregarPaciente({
 
     try {
       const response = await api.post('/pacientes', {
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        cedula: formData.cedula,
-        email: formData.email,
-        fecha_nacimiento: formData.fecha_nacimiento,
-        genero: formData.genero || null,
-        telefono: formData.telefono || null,
-        direccion: formData.direccion || null,
+        ...formData,
+        fecha_nacimiento: formData.fecha_nacimiento ? format(formData.fecha_nacimiento, 'yyyy-MM-dd') : null,
       });
 
       setDatosCreados({
@@ -119,7 +106,7 @@ export default function ModalAgregarPaciente({
         apellido: '',
         cedula: '',
         email: '',
-        fecha_nacimiento: '',
+        fecha_nacimiento: undefined,
         genero: '',
         telefono: '',
         direccion: '',
@@ -147,358 +134,237 @@ export default function ModalAgregarPaciente({
     }
   };
 
-  const calcularEdad = (fechaNacimiento: string) => {
-    if (!fechaNacimiento) return '';
+  const calcularEdad = (fecha: Date | undefined) => {
+    if (!fecha) return '';
     const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const mes = hoy.getMonth() - nacimiento.getMonth();
-    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    let edad = hoy.getFullYear() - fecha.getFullYear();
+    const mes = hoy.getMonth() - fecha.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fecha.getDate())) {
       edad--;
     }
     return edad;
   };
 
-  if (!isOpen) return null;
-
   if (exitoModal) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
-          {/* Header */}
-          <div className="flex justify-between items-center p-6 border-b">
-            <h2 className="text-xl font-bold text-gray-900">
-              ¡Paciente Creado!
-            </h2>
-            <button
-              onClick={handleCerrar}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+      <Dialog open={true} onOpenChange={(open) => !open && handleCerrar()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <Check className="w-6 h-6 text-green-600" />
               </div>
-              <p className="text-gray-700 mb-2">
-                Se ha creado correctamente el paciente y su cuenta de usuario.
-              </p>
-            </div>
+              <span>¡Paciente Creado!</span>
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              El paciente y su usuario han sido registrados exitosamente.
+            </DialogDescription>
+          </DialogHeader>
 
-            {/* Datos del Paciente */}
-            <div className="bg-brand-50 rounded-lg p-4 mb-6">
-              <p className="text-sm font-bold text-brand-900 mb-3">
-                📋 Datos del Paciente:
-              </p>
-              <div className="space-y-2 text-sm">
-                <div className="bg-white p-2 rounded border border-brand-200">
-                  <p className="text-xs text-gray-600">Nombre</p>
-                  <p className="font-semibold text-gray-900">
-                    {datosCreados?.paciente?.nombre}
-                  </p>
-                </div>
-                <div className="bg-white p-2 rounded border border-brand-200">
-                  <p className="text-xs text-gray-600">Cédula</p>
-                  <p className="font-semibold text-gray-900">
-                    {datosCreados?.paciente?.cedula}
-                  </p>
-                </div>
-              </div>
-            </div>
-
+          <div className="space-y-4">
             {/* Credenciales de Usuario */}
-            <div className="bg-green-50 rounded-lg p-4 mb-6">
-              <p className="text-sm font-bold text-green-900 mb-3">
-                🔐 Credenciales de Usuario:
+            <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+              <p className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
+                🔐 Credenciales de Acceso
               </p>
               <div className="space-y-3 text-sm">
-                {/* Usuario */}
                 <div>
-                  <p className="text-xs text-gray-600 mb-1">Usuario (Cédula)</p>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-white p-2 rounded border border-green-300 flex-1">
-                      <p className="font-mono font-semibold text-gray-900">
-                        {datosCreados?.usuario?.usuario}
-                      </p>
+                  <Label className="text-xs text-gray-600">Usuario (Cédula)</Label>
+                  <div className="flex gap-2">
+                    <div className="bg-white px-3 py-2 rounded border flex-1 font-mono text-sm">
+                      {datosCreados?.usuario?.usuario}
                     </div>
-                    <button
-                      onClick={() =>
-                        handleCopiar(datosCreados?.usuario?.usuario)
-                      }
-                      className="p-2 hover:bg-green-100 rounded transition-colors"
-                      title="Copiar"
-                    >
-                      {copiado ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-gray-600" />
-                      )}
-                    </button>
+                    <Button size="icon" variant="outline" onClick={() => handleCopiar(datosCreados?.usuario?.usuario)}>
+                      {copiado ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
 
-                {/* Contraseña */}
                 <div>
-                  <p className="text-xs text-gray-600 mb-1">Contraseña</p>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-white p-2 rounded border border-green-300 flex-1 flex items-center">
-                      <input
-                        type={mostrarContraseña ? 'text' : 'password'}
-                        value={datosCreados?.usuario?.contraseña}
-                        readOnly
-                        className="font-mono font-semibold text-gray-900 bg-transparent w-full outline-none"
-                      />
+                  <Label className="text-xs text-gray-600">Contraseña</Label>
+                  <div className="flex gap-2">
+                    <div className="bg-white px-3 py-2 rounded border flex-1 font-mono text-sm flex justify-between items-center">
+                      <span>
+                        {mostrarContraseña ? datosCreados?.usuario?.contraseña : '••••••••'}
+                      </span>
                     </div>
-                    <button
-                      onClick={() => setMostrarContraseña(!mostrarContraseña)}
-                      className="p-2 hover:bg-green-100 rounded transition-colors"
-                      title="Mostrar/Ocultar"
-                    >
-                      {mostrarContraseña ? (
-                        <EyeOff className="w-4 h-4 text-gray-600" />
-                      ) : (
-                        <Eye className="w-4 h-4 text-gray-600" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleCopiar(datosCreados?.usuario?.contraseña)
-                      }
-                      className="p-2 hover:bg-green-100 rounded transition-colors"
-                      title="Copiar"
-                    >
-                      {copiado ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-gray-600" />
-                      )}
-                    </button>
+                    <Button size="icon" variant="ghost" onClick={() => setMostrarContraseña(!mostrarContraseña)}>
+                      {mostrarContraseña ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button size="icon" variant="outline" onClick={() => handleCopiar(datosCreados?.usuario?.contraseña)}>
+                      {copiado ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Instrucciones */}
-            <div className="bg-yellow-50 rounded-lg p-4 mb-6">
-              <p className="text-xs text-yellow-900 font-semibold mb-2">
-                ⚠️ Importante:
-              </p>
+            <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
               <p className="text-xs text-yellow-800">
-                Comparte estas credenciales con el paciente. Podrá ingresar al portal usando el usuario (cédula) O el email, junto con la contraseña mostrada.
+                ⚠️ Comparte estas credenciales con el paciente inmediatamente.
               </p>
             </div>
 
-            <button
-              onClick={handleCerrar}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-            >
-              Entendido
-            </button>
+            <Button onClick={handleCerrar} className="w-full bg-green-600 hover:bg-green-700">
+              Entendido, cerrar
+            </Button>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">Agregar Paciente</h2>
-          <button
-            onClick={handleCerrar}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Agregar Nuevo Paciente</DialogTitle>
+          <DialogDescription>
+            Complete el formulario para registrar un nuevo paciente en el sistema.
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Body */}
-        <div className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-sm text-red-700">
+              <AlertCircle className="w-4 h-4" />
+              {error}
             </div>
           )}
 
-          {/* Nombre */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre *
-            </label>
-            <input
-              type="text"
-              value={formData.nombre}
-              onChange={(e) =>
-                setFormData({ ...formData, nombre: e.target.value })
-              }
-              placeholder="Juan"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nombre">Nombre *</Label>
+              <Input
+                id="nombre"
+                placeholder="Juan"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="apellido">Apellido *</Label>
+              <Input
+                id="apellido"
+                placeholder="Pérez"
+                value={formData.apellido}
+                onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+              />
+            </div>
           </div>
 
-          {/* Apellido */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Apellido *
-            </label>
-            <input
-              type="text"
-              value={formData.apellido}
-              onChange={(e) =>
-                setFormData({ ...formData, apellido: e.target.value })
-              }
-              placeholder="Pérez"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              Se usará para generar la contraseña
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cedula">Cédula de Identidad *</Label>
+              <Input
+                id="cedula"
+                placeholder="12345678"
+                value={formData.cedula}
+                onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo Electrónico *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="juan@ejemplo.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
           </div>
 
-          {/* Cédula de Identidad */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cédula de Identidad *
-            </label>
-            <input
-              type="text"
-              value={formData.cedula}
-              onChange={(e) =>
-                setFormData({ ...formData, cedula: e.target.value })
-              }
-              placeholder="1234567890"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              Será usada como usuario de acceso
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 flex flex-col">
+              <Label>Fecha de Nacimiento *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full pl-3 text-left font-normal",
+                      !formData.fecha_nacimiento && "text-muted-foreground"
+                    )}
+                  >
+                    {formData.fecha_nacimiento ? (
+                      format(formData.fecha_nacimiento, "PPP", { locale: es })
+                    ) : (
+                      <span>Seleccionar fecha</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.fecha_nacimiento}
+                    onSelect={(date) => setFormData({ ...formData, fecha_nacimiento: date })}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                    captionLayout="dropdown-buttons"
+                    fromYear={1920}
+                    toYear={new Date().getFullYear()}
+                  />
+                </PopoverContent>
+              </Popover>
+              {formData.fecha_nacimiento && (
+                <p className="text-xs text-muted-foreground">
+                  Edad calculada: {calcularEdad(formData.fecha_nacimiento)} años
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Género</Label>
+              <Select
+                value={formData.genero}
+                onValueChange={(value) => setFormData({ ...formData, genero: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="femenino">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Correo Electrónico *
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              placeholder="paciente@example.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              Se usará como credencial alternativa de acceso
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input
+                id="telefono"
+                placeholder="+56 9 1234 5678"
+                value={formData.telefono}
+                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="direccion">Dirección</Label>
+              <Input
+                id="direccion"
+                placeholder="Av. Principal 123"
+                value={formData.direccion}
+                onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+              />
+            </div>
           </div>
 
-          {/* Fecha de Nacimiento */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha de Nacimiento *
-            </label>
-            <input
-              type="date"
-              value={formData.fecha_nacimiento}
-              onChange={(e) =>
-                setFormData({ ...formData, fecha_nacimiento: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-            {formData.fecha_nacimiento && (
-              <p className="text-xs text-gray-600 mt-1">
-                Edad: {calcularEdad(formData.fecha_nacimiento)} años
-              </p>
-            )}
-          </div>
-
-          {/* Género */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Género
-            </label>
-            <select
-              value={formData.genero}
-              onChange={(e) =>
-                setFormData({ ...formData, genero: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            >
-              <option value="">Selecciona...</option>
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-            </select>
-          </div>
-
-          {/* Teléfono */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Teléfono
-            </label>
-            <input
-              type="tel"
-              value={formData.telefono}
-              onChange={(e) =>
-                setFormData({ ...formData, telefono: e.target.value })
-              }
-              placeholder="+56 9 1234 5678"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-          </div>
-
-          {/* Dirección */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dirección
-            </label>
-            <input
-              type="text"
-              value={formData.direccion}
-              onChange={(e) =>
-                setFormData({ ...formData, direccion: e.target.value })
-              }
-              placeholder="Calle Principal 123, Apto 4"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleCerrar}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={cargando}>
               Cancelar
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={cargando}
-              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
-            >
-              {cargando ? 'Agregando...' : 'Agregar Paciente'}
-            </button>
+            </Button>
+            <Button type="submit" disabled={cargando} className="bg-brand-500 hover:bg-brand-700">
+              {cargando ? 'Guardando...' : 'Guardar Paciente'}
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

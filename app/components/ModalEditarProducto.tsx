@@ -2,7 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import { X, AlertCircle, Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Loader2, ArrowRight } from 'lucide-react';
+
+// ShadCN UI
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 
 interface ModalEditarProductoProps {
   isOpen: boolean;
@@ -38,7 +53,7 @@ export default function ModalEditarProducto({
     try {
       const cantidadActual = parseInt(producto.cantidad || '0');
       const cantidadCambio = parseInt(cantidadInput);
-      
+
       if (isNaN(cantidadCambio) || cantidadCambio <= 0) {
         throw new Error('La cantidad debe ser mayor a 0');
       }
@@ -70,126 +85,118 @@ export default function ModalEditarProducto({
 
   const cantidadActual = parseInt(producto.cantidad || '0');
   const cantidadCambio = parseInt(cantidadInput) || 0;
-  const nuevaCantidadPreview = accion === 'sumar' 
-    ? cantidadActual + cantidadCambio 
+  const nuevaCantidadPreview = accion === 'sumar'
+    ? cantidadActual + cantidadCambio
     : cantidadActual - cantidadCambio;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">Gestionar Inventario</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Gestionar Inventario</DialogTitle>
+          <DialogDescription>
+            {producto.nombre_producto}
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm">{error}</p>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Status Card */}
+          <div className="bg-slate-50 p-4 rounded-lg border flex justify-between items-center">
+            <span className="text-sm text-slate-500 font-medium">Stock Actual</span>
+            <span className="text-2xl font-bold text-slate-900">{cantidadActual}</span>
+          </div>
+
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Seleccionar Acción</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={accion === 'sumar' ? 'default' : 'outline'}
+                className={cn(
+                  "h-auto py-3 flex flex-col gap-1 items-center justify-center",
+                  accion === 'sumar' ? "bg-blue-600 hover:bg-blue-700" : "hover:bg-blue-50 hover:text-blue-600 border-dashed"
+                )}
+                onClick={() => setAccion('sumar')}
+              >
+                <Plus className="h-6 w-6 mb-1" />
+                <span className="font-semibold">Agregar</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant={accion === 'restar' ? 'default' : 'outline'}
+                className={cn(
+                  "h-auto py-3 flex flex-col gap-1 items-center justify-center",
+                  accion === 'restar' ? "bg-red-600 hover:bg-red-700" : "hover:bg-red-50 hover:text-red-600 border-dashed"
+                )}
+                onClick={() => setAccion('restar')}
+              >
+                <Minus className="h-6 w-6 mb-1" />
+                <span className="font-semibold">Quitar</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Cantidad a {accion === 'sumar' ? 'Ingresar' : 'Retirar'}</Label>
+            <div className="relative">
+              <div className="absolute left-3 top-2.5 text-muted-foreground">
+                {accion === 'sumar' ? <Plus className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+              </div>
+              <Input
+                type="number"
+                min="1"
+                placeholder="0"
+                className="pl-9 text-lg font-medium"
+                value={cantidadInput}
+                onChange={(e) => setCantidadInput(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* Preview Calculation */}
+          {(cantidadCambio > 0) && (
+            <div className="flex items-center justify-between text-sm p-3 bg-gray-50 rounded-md border border-gray-100">
+              <span className="text-gray-500">Resultado Previsto:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 decoration-slice line-through">{cantidadActual}</span>
+                <ArrowRight className="w-4 h-4 text-gray-400" />
+                <span className={cn(
+                  "font-bold text-lg",
+                  nuevaCantidadPreview < (producto.cantidad_minima || 5) && "text-orange-600",
+                  nuevaCantidadPreview < 0 && "text-red-600",
+                  nuevaCantidadPreview >= (producto.cantidad_minima || 5) && "text-green-600"
+                )}>
+                  {nuevaCantidadPreview}
+                </span>
+              </div>
             </div>
           )}
 
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium text-gray-900 mb-2">{producto.nombre_producto}</h3>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Stock Actual:</span>
-              <span className="font-bold text-gray-900">{producto.cantidad} unidades</span>
-            </div>
-          </div>
-
-          {/* Selector de Acción */}
-          <div className="flex space-x-2">
-            <button
-              type="button"
-              onClick={() => setAccion('sumar')}
-              className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center space-x-2 border transition-colors ${
-                accion === 'sumar'
-                  ? 'bg-blue-50 border-blue-200 text-blue-700 ring-2 ring-blue-500 ring-offset-1'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Agregar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setAccion('restar')}
-              className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center space-x-2 border transition-colors ${
-                accion === 'restar'
-                  ? 'bg-red-50 border-red-200 text-red-700 ring-2 ring-red-500 ring-offset-1'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Minus className="w-4 h-4" />
-              <span>Quitar</span>
-            </button>
-          </div>
-
-          {/* Cantidad Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cantidad a {accion === 'sumar' ? 'Agregar' : 'Quitar'}
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                {accion === 'sumar' ? (
-                  <Plus className="h-5 w-5 text-blue-500" />
-                ) : (
-                  <Minus className="h-5 w-5 text-red-500" />
-                )}
-              </div>
-              <input
-                type="number"
-                value={cantidadInput}
-                onChange={(e) => setCantidadInput(e.target.value)}
-                placeholder="0"
-                min="1"
-                className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-                required
-              />
-            </div>
-            
-            {/* Preview del nuevo total */}
-            <div className="mt-3 flex justify-between items-center text-sm p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Nuevo Total Estimado:</span>
-              <span className={`font-bold ${
-                nuevaCantidadPreview < 0 ? 'text-red-600' : 
-                nuevaCantidadPreview < (producto.cantidad_minima || 5) ? 'text-orange-600' : 'text-green-600'
-              }`}>
-                {nuevaCantidadPreview} unidades
-              </span>
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={cargando}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={cargando || nuevaCantidadPreview < 0}
-              className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:bg-gray-400 ${
-                accion === 'sumar' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'
-              }`}
+              disabled={cargando || cantidadCambio <= 0}
+              className={cn(
+                accion === 'sumar' ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"
+              )}
             >
-              {cargando ? 'Guardando...' : accion === 'sumar' ? 'Agregar Stock' : 'Quitar Stock'}
-            </button>
-          </div>
+              {cargando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {cargando ? 'Actualizando' : 'Confirmar Cambio'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

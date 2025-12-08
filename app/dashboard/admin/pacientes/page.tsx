@@ -2,25 +2,58 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
-import SearchBar from '@/app/components/SearchBar';
 import Pagination from '@/app/components/Pagination';
 import ModalAgregarPaciente from '@/app/components/ModalAgregarPaciente';
 import ModalEditarPaciente from '@/app/components/ModalEditarPaciente';
 import api from '@/app/lib/api';
-import { Plus, AlertCircle, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, FileText, User } from 'lucide-react';
 import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
+
+// Shadcn UI Components
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function PacientesPage() {
   const [pacientes, setPacientes] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [cargando, setCargando] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [generoFilter, setGeneroFilter] = useState('todos');
+  const [edadFilter, setEdadFilter] = useState('todos');
+
+  // Modal states
   const [modalAgregarAbierto, setModalAgregarAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState<any>(null);
   const [cargandoEliminar, setCargandoEliminar] = useState<number | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -29,40 +62,18 @@ export default function PacientesPage() {
 
   const obtenerPacientes = async () => {
     try {
-      setCargando(true);
+      setLoading(true);
       const response = await api.get('/pacientes');
       setPacientes(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al cargar pacientes');
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
-  // Filtrar pacientes por búsqueda
-  const pacientesFiltrados = pacientes.filter((paciente) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      paciente.nombre.toLowerCase().includes(query) ||
-      (paciente.cedula && paciente.cedula.toLowerCase().includes(query)) ||
-      (paciente.rut && paciente.rut.toLowerCase().includes(query)) ||
-      (paciente.telefono && paciente.telefono.toLowerCase().includes(query))
-    );
-  });
-
-  // Calcular paginación
-  const totalPages = Math.ceil(pacientesFiltrados.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const pacientesPaginados = pacientesFiltrados.slice(startIndex, endIndex);
-
-  // Resetear página si no hay resultados
-  if (pacientesFiltrados.length > 0 && currentPage > totalPages) {
-    setCurrentPage(1);
-  }
-
   const calcularEdad = (fechaNacimiento: string) => {
-    if (!fechaNacimiento) return '-';
+    if (!fechaNacimiento) return 0;
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -72,6 +83,43 @@ export default function PacientesPage() {
     }
     return edad;
   };
+
+  const filtrarPorEdad = (edad: number, rango: string) => {
+    switch (rango) {
+      case '0-18': return edad <= 18;
+      case '19-30': return edad > 18 && edad <= 30;
+      case '31-50': return edad > 30 && edad <= 50;
+      case '51-65': return edad > 50 && edad <= 65;
+      case '65+': return edad > 65;
+      default: return true;
+    }
+  };
+
+  // Lógica de filtrado combinada
+  const pacientesFiltrados = pacientes.filter((paciente) => {
+    const edad = calcularEdad(paciente.fecha_nacimiento);
+    const query = searchQuery.toLowerCase();
+
+    // Filtro Texto
+    const matchText =
+      paciente.nombre.toLowerCase().includes(query) ||
+      (paciente.cedula && paciente.cedula.toLowerCase().includes(query)) ||
+      (paciente.rut && paciente.rut.toLowerCase().includes(query)) ||
+      (paciente.telefono && paciente.telefono.toLowerCase().includes(query));
+
+    // Filtro Género
+    const matchGenero = generoFilter === 'todos' || paciente.genero?.toLowerCase() === generoFilter;
+
+    // Filtro Edad
+    const matchEdad = edadFilter === 'todos' || filtrarPorEdad(edad, edadFilter);
+
+    return matchText && matchGenero && matchEdad;
+  });
+
+  // Paginación
+  const totalPages = Math.ceil(pacientesFiltrados.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPacientes = pacientesFiltrados.slice(startIndex, startIndex + itemsPerPage);
 
   const handleEditar = (paciente: any) => {
     setPacienteSeleccionado(paciente);
@@ -100,173 +148,189 @@ export default function PacientesPage() {
     }
   };
 
+  const getGeneroBadgeColor = (genero: string) => {
+    switch (genero?.toLowerCase()) {
+      case 'masculino': return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
+      case 'femenino': return 'bg-pink-100 text-pink-700 hover:bg-pink-200';
+      default: return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+    }
+  };
+
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-6 max-w-[1900px] mx-auto w-full p-4 md:p-6">
+
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Pacientes</h1>
-            <p className="text-gray-600 mt-2">
-              Total de pacientes: {pacientes.length}
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Gestión de Pacientes</h1>
+            <p className="text-muted-foreground mt-1">
+              Administra la base de datos de pacientes de la clínica
             </p>
           </div>
-          <button
+          <Button
             onClick={() => setModalAgregarAbierto(true)}
-            className="flex items-center space-x-2 bg-brand-500 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+            className="bg-brand-500 hover:bg-brand-700 text-white"
           >
-            <Plus className="w-5 h-5" />
-            <span>Agregar Paciente</span>
-          </button>
+            <Plus className="w-5 h-5 mr-2" />
+            Agregar Paciente
+          </Button>
         </div>
 
-        {/* Búsqueda */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <SearchBar
-            placeholder="Buscar por nombre, cédula, RUT o teléfono..."
-            value={searchQuery}
-            onSearch={setSearchQuery}
-          />
-          <p className="text-sm text-gray-600 mt-2">
-            Resultados: {pacientesFiltrados.length} pacientes
-          </p>
-        </div>
+        {/* Filters & Table Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Listado de Pacientes</CardTitle>
+            <CardDescription>
+              Total registrados: {pacientes.length} | Mostrando: {pacientesFiltrados.length}
+            </CardDescription>
 
-        {/* Error */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Loading */}
-        {cargando && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto"></div>
-          </div>
-        )}
-
-        {/* Pacientes Table */}
-        {!cargando && pacientesPaginados.length > 0 && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Nombre
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Cédula
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Fecha Nacimiento
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Edad
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Género
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Teléfono
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {pacientesPaginados.map((paciente) => (
-                    <tr key={paciente.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {paciente.nombre}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {paciente.cedula || paciente.rut || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {paciente.fecha_nacimiento
-                          ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES')
-                          : '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {calcularEdad(paciente.fecha_nacimiento)} años
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">
-                        {paciente.genero || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {paciente.telefono || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-sm space-x-3">
-                        <button
-                          onClick={() => handleEditar(paciente)}
-                          className="text-brand-600 hover:text-brand-700 font-medium"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleEliminar(paciente.id)}
-                          disabled={cargandoEliminar === paciente.id}
-                          className="text-red-600 hover:text-red-700 font-medium disabled:text-gray-400"
-                        >
-                          {cargandoEliminar === paciente.id ? (
-                            <span className="inline-flex items-center">
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Eliminando...
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center">
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Eliminar
-                            </span>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Filters Bar */}
+            <div className="flex flex-col md:flex-row gap-4 mt-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, RUT o teléfono..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <Select value={generoFilter} onValueChange={setGeneroFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Género" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los géneros</SelectItem>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="femenino">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={edadFilter} onValueChange={setEdadFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Rango de Edad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las edades</SelectItem>
+                  <SelectItem value="0-18">0 - 18 años</SelectItem>
+                  <SelectItem value="19-30">19 - 30 años</SelectItem>
+                  <SelectItem value="31-50">31 - 50 años</SelectItem>
+                  <SelectItem value="51-65">51 - 65 años</SelectItem>
+                  <SelectItem value="65+">Más de 65</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        )}
+          </CardHeader>
 
-        {/* Empty State */}
-        {!cargando && pacientesFiltrados.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg">
-            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg mb-4">
-              {searchQuery ? 'No se encontraron pacientes' : 'No hay pacientes registrados'}
-            </p>
-            <button
-              onClick={() => setModalAgregarAbierto(true)}
-              className="inline-flex items-center space-x-2 bg-brand-500 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Agregar Primer Paciente</span>
-            </button>
-          </div>
-        )}
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+              </div>
+            ) : paginatedPacientes.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <User className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>No se encontraron pacientes con los filtros seleccionados</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Cédula / RUT</TableHead>
+                      <TableHead>Edad</TableHead>
+                      <TableHead>Género</TableHead>
+                      <TableHead>Contacto</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedPacientes.map((paciente) => (
+                      <TableRow key={paciente.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{paciente.nombre}</span>
+                            <span className="text-xs text-muted-foreground md:hidden">
+                              {new Date(paciente.fecha_nacimiento).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{paciente.cedula || paciente.rut || '-'}</TableCell>
+                        <TableCell>{calcularEdad(paciente.fecha_nacimiento)} años</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={getGeneroBadgeColor(paciente.genero)}>
+                            {paciente.genero || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{paciente.telefono || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditar(paciente)}
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Editar Paciente</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-        {/* Paginación */}
-        {pacientesFiltrados.length > itemsPerPage && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        )}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEliminar(paciente.id)}
+                                    disabled={cargandoEliminar === paciente.id}
+                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Eliminar Paciente</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
-        {/* Modal Agregar */}
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Modals */}
         <ModalAgregarPaciente
           isOpen={modalAgregarAbierto}
           onClose={() => setModalAgregarAbierto(false)}
           onSuccess={() => obtenerPacientes()}
         />
 
-        {/* Modal Editar */}
         <ModalEditarPaciente
           isOpen={modalEditarAbierto}
           paciente={pacienteSeleccionado}

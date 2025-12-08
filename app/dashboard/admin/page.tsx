@@ -1,308 +1,299 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import ProtectedRoute from '@/app/components/ProtectedRoute';
+import { SectionCards } from "@/app/components/section-cards"
+import { ChartAreaInteractive } from "@/app/components/chart-area-interactive"
+import { DataTable } from "@/app/components/data-table"
+import { QuickActions } from "@/app/components/quick-actions"
+import { QuickSummary } from "@/app/components/quick-summary"
 import ModalReportes from '@/app/components/ModalReportes';
 import api from '@/app/lib/api';
-import { Users, Droplets, Package, TrendingUp, AlertCircle, FileText } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertTriangle, TrendingUp, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  TooltipProps
+} from 'recharts';
 
-export default function AdminDashboard() {
-  const router = useRouter();
+export default function AdminDashboardPage() {
+  const [modalReportesAbierto, setModalReportesAbierto] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalPacientes: 0,
-    muestrasPendientes: 0,
+    totalMuestras: 0,
     productosInventario: 0,
     resultadosHoy: 0,
   });
-  const [lowStockItems, setLowStockItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [modalReportesAbierto, setModalReportesAbierto] = useState(false);
+  const [stockBajo, setStockBajo] = useState<any[]>([]);
+  const [muestrasData, setMuestrasData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
-    obtenerEstadisticas();
+    const fetchInitial = async () => {
+      setLoading(true);
+      await obtenerEstadisticas();
+      setLoading(false);
+    };
+    fetchInitial();
+
+    const intervalId = setInterval(() => {
+      obtenerEstadisticas();
+    }, 10000); // Poll every 10 seconds for "real-time" feel
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  const processChartData = (muestras: any[], pacientes: any[]) => {
+    const days = 7;
+    const data = [];
+    const today = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' });
+
+      // Count samples for this day
+      const muestrasCount = muestras.filter(m => {
+        const mDate = m.fecha_toma ? new Date(m.fecha_toma).toISOString().split('T')[0] : '';
+        return mDate === dateStr;
+      }).length;
+
+      // Count new patients for this day
+      const pacientesCount = pacientes.filter(p => {
+        const pDate = p.fecha_creacion ? new Date(p.fecha_creacion).toISOString().split('T')[0] : '';
+        return pDate === dateStr;
+      }).length;
+
+      data.push({
+        name: dayName,
+        fecha: dateStr,
+        muestras: muestrasCount,
+        pacientes: pacientesCount
+      });
+    }
+    return data;
+  };
 
   const obtenerEstadisticas = async () => {
     try {
-      setLoading(true);
-      
-      // Obtener estadísticas en paralelo
       const [pacientesRes, muestrasRes, inventarioRes] = await Promise.all([
         api.get('/pacientes'),
         api.get('/muestras'),
         api.get('/inventario'),
       ]);
 
-      const pacientes = pacientesRes.data;
-      const muestras = muestrasRes.data;
-      const inventario = inventarioRes.data;
-
-      // Calcular estadísticas
-      const totalMuestras = muestras.length;
+      const inventario = inventarioRes.data || [];
+      const muestras = muestrasRes.data || [];
+      const pacientes = pacientesRes.data || [];
+      const bajos = inventario.filter((p: any) => p.cantidad <= (p.cantidad_minima || 5));
 
       const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
       const resultadosHoy = muestras.filter((m: any) => {
+        // Check if sample has results
+        const tieneResultados = m.tipos_muestras?.some((t: any) => t.tiene_resultados);
+        if (!tieneResultados) return false;
+
+        // Check if updated today (assuming results update timestamp)
         if (!m.fecha_resultado) return false;
         const fechaResultado = new Date(m.fecha_resultado);
-        fechaResultado.setHours(0, 0, 0, 0);
-        return fechaResultado.getTime() === hoy.getTime();
+        return fechaResultado.getDate() === hoy.getDate() &&
+          fechaResultado.getMonth() === hoy.getMonth() &&
+          fechaResultado.getFullYear() === hoy.getFullYear();
       }).length;
 
-      // Filtrar productos con stock bajo
-      const lowStock = inventario.filter((item: any) => item.cantidad <= (item.cantidad_minima || 5));
-      setLowStockItems(lowStock);
-
+      setMuestrasData(muestras);
+      setStockBajo(bajos);
       setStats({
         totalPacientes: pacientes.length,
-        muestrasPendientes: totalMuestras,
+        totalMuestras: muestras.length,
         productosInventario: inventario.length,
         resultadosHoy,
       });
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al cargar estadísticas');
-    } finally {
-      setLoading(false);
+
+      // Process chart data
+      const processedData = processChartData(muestras, pacientes);
+      setChartData(processedData);
+
+    } catch (err) {
+      console.error('Error al cargar estadísticas:', err);
     }
   };
 
-  const statsCards = [
-    {
-      label: 'Total Pacientes',
-      value: stats.totalPacientes,
-      icon: Users,
-      color: 'bg-brand-100',
-      textColor: 'text-brand-700',
-      borderColor: 'border-brand-500',
-    },
-    {
-      label: 'Total Muestras',
-      value: stats.muestrasPendientes,
-      icon: Droplets,
-      color: 'bg-blue-100',
-      textColor: 'text-blue-600',
-      borderColor: 'border-blue-500',
-    },
-    {
-      label: 'Productos Inventario',
-      value: stats.productosInventario,
-      icon: Package,
-      color: 'bg-green-100',
-      textColor: 'text-green-600',
-      borderColor: 'border-green-500',
-    },
-    {
-      label: 'Resultados Hoy',
-      value: stats.resultadosHoy,
-      icon: TrendingUp,
-      color: 'bg-purple-100',
-      textColor: 'text-purple-600',
-      borderColor: 'border-purple-500',
-    },
-  ];
-
-  const handleRegistrarMuestra = () => {
-    router.push('/dashboard/admin/muestras');
-  };
-
-  const handleAgregarPaciente = () => {
-    router.push('/dashboard/admin/pacientes');
-  };
-
-  const handleActualizarInventario = () => {
-    router.push('/dashboard/admin/inventario');
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-lg">
+          <p className="text-sm font-medium text-gray-900 mb-1">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-xs" style={{ color: entry.color }}>
+              {entry.name === 'muestras' ? 'Muestras Realizadas: ' : 'Nuevos Pacientes: '}
+              <span className="font-bold">{entry.value}</span>
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
-          <p className="text-gray-600 mt-2">
-            Bienvenido al panel de administración del laboratorio
-          </p>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Low Stock Alert */}
-        {!loading && lowStockItems.length > 0 && (
-          <div className="bg-[#FFF8F0] border-l-[6px] border-[#FF5722] border-y border-r border-[#FFCCBC] p-4 rounded-r-lg shadow-sm mb-6">
-            <div className="flex flex-col space-y-3">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-[#FF5722]" aria-hidden="true" />
-                <h3 className="text-sm font-medium text-[#BF360C]">
-                  Alerta de Inventario Bajo ({lowStockItems.length} productos)
-                </h3>
-              </div>
-              
-              <div className="ml-7">
-                <ul className="list-disc space-y-1 text-sm text-[#D84315]">
-                  {lowStockItems.slice(0, 3).map((item) => (
-                    <li key={item.id}>
-                      <span className="font-medium">{item.nombre_producto}</span>: {item.cantidad} unidades (Mínimo: {item.cantidad_minima || 5})
-                    </li>
-                  ))}
-                  {lowStockItems.length > 3 && (
-                    <li>...y {lowStockItems.length - 3} más</li>
-                  )}
-                </ul>
-                
-                <button
-                  type="button"
-                  onClick={handleActualizarInventario}
-                  className="mt-3 text-sm font-medium text-[#E64A19] hover:text-[#BF360C] hover:underline flex items-center"
-                >
-                  Ver inventario completo &rarr;
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg shadow p-6 border-l-4 border-gray-200 animate-pulse"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-24 mb-4"></div>
-                    <div className="h-8 bg-gray-200 rounded w-16"></div>
-                  </div>
-                  <div className="bg-gray-200 p-3 rounded-lg w-12 h-12"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {statsCards.map((stat, i) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={i}
-                  className={`bg-white rounded-lg shadow p-6 border-l-4 ${stat.borderColor} hover:shadow-lg transition-all hover:-translate-y-1`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-600 text-sm font-medium">
-                        {stat.label}
-                      </p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div className={`${stat.color} p-3 rounded-lg`}>
-                      <Icon className={`w-7 h-7 ${stat.textColor}`} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Acciones Rápidas
-            </h3>
-            <div className="space-y-3">
-              <button
-                onClick={handleRegistrarMuestra}
-                className="w-full bg-brand-500 text-white py-3 rounded-lg hover:bg-brand-700 transition-colors font-medium flex items-center justify-center space-x-2"
-              >
-                <Droplets className="w-5 h-5" />
-                <span>Registrar Nueva Muestra</span>
-              </button>
-              <button
-                onClick={handleAgregarPaciente}
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2"
-              >
-                <Users className="w-5 h-5" />
-                <span>Agregar Paciente</span>
-              </button>
-              <button
-                onClick={handleActualizarInventario}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center space-x-2"
-              >
-                <Package className="w-5 h-5" />
-                <span>Actualizar Inventario</span>
-              </button>
-              <button
-                onClick={() => setModalReportesAbierto(true)}
-                className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium flex items-center justify-center space-x-2"
-              >
-                <FileText className="w-5 h-5" />
-                <span>Generar Reportes</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Resumen Rápido
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-brand-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Users className="w-5 h-5 text-brand-600" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Pacientes Registrados
-                  </span>
-                </div>
-                <span className="text-lg font-bold text-brand-600">
-                  {stats.totalPacientes}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Droplets className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Total Muestras
-                  </span>
-                </div>
-                <span className="text-lg font-bold text-blue-600">
-                  {stats.muestrasPendientes}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Package className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Productos disponibles
-                  </span>
-                </div>
-                <span className="text-lg font-bold text-green-600">
-                  {stats.productosInventario}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 w-full max-w-[1600px] mx-auto">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Resumen general del laboratorio</p>
       </div>
 
-      {/* Modal de Reportes */}
-      <ModalReportes 
-        isOpen={modalReportesAbierto} 
-        onClose={() => setModalReportesAbierto(false)} 
+      <SectionCards loading={loading} stats={stats} />
+
+      {/* Main Charts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Muestras Chart */}
+        <Card className="shadow-sm border-brand-100">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-brand-50 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-brand-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg text-gray-800">Muestras Recientes</CardTitle>
+                <CardDescription>Volumen de muestras últimos 7 días</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] w-full">
+              {loading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorMuestras" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4B9B6E" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#4B9B6E" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="muestras"
+                      stroke="#4B9B6E"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorMuestras)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Clients Chart */}
+        <Card className="shadow-sm border-indigo-100">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-50 rounded-lg">
+                <Users className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg text-gray-800">Nuevos Pacientes</CardTitle>
+                <CardDescription>Registros en los últimos 7 días</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] w-full">
+              {loading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-indigo-500" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar
+                      dataKey="pacientes"
+                      fill="#6366f1"
+                      radius={[4, 4, 0, 0]}
+                      barSize={40}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {stockBajo.length > 0 && (
+        <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-900 shadow-sm animate-pulse-slow">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 font-semibold">Alerta de Inventario</AlertTitle>
+          <AlertDescription className="text-red-700 mt-1">
+            Hay {stockBajo.length} productos con stock crítico. Revisa el inventario para reabastecer:
+            <span className="font-medium ml-1">
+              {stockBajo.slice(0, 3).map(p => p.nombre_producto).join(', ')}
+              {stockBajo.length > 3 && '...'}
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+        <QuickActions onOpenReportes={() => setModalReportesAbierto(true)} />
+        <QuickSummary
+          totalPacientes={stats.totalPacientes}
+          totalMuestras={stats.totalMuestras}
+          productosInventario={stats.productosInventario}
+        />
+      </div>
+
+      <DataTable data={muestrasData} loading={loading} />
+
+      <ModalReportes
+        isOpen={modalReportesAbierto}
+        onClose={() => setModalReportesAbierto(false)}
       />
-    </ProtectedRoute>
+    </div>
   );
 }

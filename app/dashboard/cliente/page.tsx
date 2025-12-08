@@ -5,7 +5,20 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import api from '@/app/lib/api';
 import Cookies from 'js-cookie';
-import { Download, AlertCircle, FileText, User, Mail, Calendar, ArrowRight, Eye, X } from 'lucide-react';
+import { Download, AlertCircle, FileText, User, Mail, Calendar, Eye, Activity } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 export default function ClienteDashboardPage() {
   const router = useRouter();
@@ -67,300 +80,214 @@ export default function ClienteDashboardPage() {
 
   return (
     <ProtectedRoute requiredRole="cliente">
-      <div className="space-y-6">
-        {/* Welcome Header */}
-        <div className="bg-brand-500 rounded-lg shadow-lg p-6 text-white">
-          <h1 className="text-3xl font-bold mb-2">
-            ¡Bienvenido, {usuario?.nombre}!
-          </h1>
-          <p className="text-brand-100">
-            Accede a tus muestras y resultados de laboratorio
-          </p>
-        </div>
+      <div className="flex flex-col gap-6 p-4 md:p-8 max-w-[1200px] mx-auto w-full">
 
-        {/* Client Info Card */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <User className="w-5 h-5 mr-2 text-brand-600" />
-            Mi Información
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-3 text-gray-700">
-              <User className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Nombre</p>
-                <p className="font-medium">{usuario?.nombre}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 text-gray-700">
-              <Mail className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Correo</p>
-                <p className="font-medium">{usuario?.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 text-gray-700">
-              <User className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Usuario</p>
-                <p className="font-medium">{usuario?.usuario}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 text-gray-700">
-              <Calendar className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500">Tipo de cuenta</p>
-                <p className="font-medium capitalize">{usuario?.rol}</p>
-              </div>
-            </div>
+        {/* Modern Welcome Header */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Hola, {usuario?.nombre.split(' ')[0]} 👋
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Bienvenido a tu portal de paciente. Aquí están tus resultados recientes.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-full shadow-sm border">
+            <Calendar className="w-4 h-4 text-brand-500" />
+            <span>{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
         </div>
 
-        {/* Quick Access Card */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-brand-100 p-3 rounded-lg">
-                <FileText className="w-8 h-8 text-brand-600" />
+        {/* Info Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="w-5 h-5 text-brand-600" />
+                Mi Perfil
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Nombre Completo</p>
+                <p className="font-medium text-sm text-gray-900">{usuario?.nombre}</p>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Ver Todas Mis Muestras</h3>
-                <p className="text-sm text-gray-600">Accede a tu historial completo de análisis</p>
+                <p className="text-xs text-muted-foreground">Correo Electrónico</p>
+                <p className="font-medium text-sm text-gray-900 truncate">{usuario?.email}</p>
               </div>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard/cliente/muestras')}
-              className="bg-brand-500 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors flex items-center space-x-2 font-medium"
-            >
-              <FileText className="w-5 h-5" />
-              <span>Ver Muestras</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Usuario / Cédula</p>
+                <p className="font-medium text-sm text-gray-900">{usuario?.usuario}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Tipo de Cuenta</p>
+                <Badge variant="secondary" className="mt-1 capitalize">{usuario?.rol}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-brand-50 border-brand-100 dark:bg-brand-950/20">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2 text-brand-800">
+                <Activity className="w-5 h-5" />
+                Acceso Rápido
+              </CardTitle>
+              <CardDescription className="text-brand-700">
+                Consulta tu historial completo de exámenes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => router.push('/dashboard/cliente/muestras')}
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Ver Historial Completo
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Samples Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-brand-600" />
-                Mis Muestras Recientes
-              </h2>
-              <p className="text-sm text-gray-900 mt-1">
-                Últimas 5 muestras registradas
-              </p>
-            </div>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <p className="text-red-700">{error}</p>
-            </div>
-          )}
-
-          {/* Loading */}
-          {cargando && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto"></div>
-            </div>
-          )}
-
-          {/* Samples Table */}
-          {!cargando && muestras.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Fecha de Toma
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Muestras
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {muestras.map((muestra) => (
-                    <tr key={muestra.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(muestra.fecha_toma).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {muestra.tipos_muestras && muestra.tipos_muestras.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {muestra.tipos_muestras.map((tipo: any, idx: number) => (
-                              <span
-                                key={idx}
-                                className="inline-block px-2 py-1 bg-brand-100 text-brand-800 rounded text-xs capitalize"
-                              >
-                                {tipo.tipo_muestra}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="py-4 text-sm space-x-3">
-                        <button
-                          onClick={() => handleVerMuestra(muestra)}
-                          className="text-brand-600 hover:text-brand-700 font-medium inline-flex items-center space-x-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span>Ver</span>
-                        </button>
-                        <button
-                          onClick={() => handleDescargarPDF(muestra.id)}
-                          className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center space-x-1"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span>Descargar</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!cargando && muestras.length === 0 && (
-            <div className="text-center py-12">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">No tienes muestras registradas aún</p>
-              <p className="text-gray-500 text-sm mt-2">
-                Tus resultados de laboratorio aparecerán aquí cuando estén disponibles
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Modal Ver Muestra */}
-        {modalAbierto && muestraSeleccionada && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              {/* Header */}
-              <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Detalles de la Muestra
-                </h2>
-                <button
-                  onClick={() => {
-                    setModalAbierto(false);
-                    setMuestraSeleccionada(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Resultados Recientes</CardTitle>
+            <CardDescription>Tus últimos exámenes de laboratorio procesados</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" /> {error}
               </div>
+            )}
 
-              {/* Body */}
-              <div className="p-6 space-y-6">
-                {/* Información General */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-gray-900 mb-3">Información General</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Paciente</p>
-                      <p className="font-medium text-gray-900">{muestraSeleccionada.paciente_nombre}</p>
+            {cargando ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+              </div>
+            ) : muestras.length > 0 ? (
+              <div className="rounded-md border">
+                <div className="grid grid-cols-3 bg-gray-50 p-3 text-sm font-medium text-gray-500 border-b">
+                  <div>Fecha</div>
+                  <div>Examen</div>
+                  <div className="text-right">Acciones</div>
+                </div>
+                {muestras.map((muestra) => (
+                  <div key={muestra.id} className="grid grid-cols-3 p-4 items-center gap-4 border-b last:border-0 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900">
+                        {new Date(muestra.fecha_toma).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(muestra.fecha_toma).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Fecha de Toma</p>
-                      <p className="font-medium text-gray-900">
-                        {new Date(muestraSeleccionada.fecha_toma).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
+                      {muestra.tipos_muestras?.map((t: any, i: number) => (
+                        <Badge key={i} variant="outline" className="mr-1 mb-1 capitalize bg-white">
+                          {t.tipo_muestra}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleVerMuestra(muestra)}>
+                        <Eye className="w-4 h-4 mr-1" /> Ver
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDescargarPDF(muestra.id)}>
+                        <Download className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>No hay resultados recientes disponibles.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Modal Ver Muestra (Shadcn Dialog) */}
+        <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Detalle de Resultados</DialogTitle>
+              <DialogDescription>
+                Resultados completos para la muestra del {muestraSeleccionada && new Date(muestraSeleccionada.fecha_toma).toLocaleDateString()}
+              </DialogDescription>
+            </DialogHeader>
+
+            {muestraSeleccionada && (
+              <div className="space-y-6">
+                {/* Info Header */}
+                <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1">Paciente</h4>
+                    <p className="font-medium">{muestraSeleccionada.paciente_nombre}</p>
+                  </div>
+                  <div className="text-right">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1">ID Muestra</h4>
+                    <p className="font-mono text-sm">#{muestraSeleccionada.id}</p>
+                  </div>
                   {muestraSeleccionada.observaciones && (
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600">Observaciones</p>
-                      <p className="font-medium text-gray-900">{muestraSeleccionada.observaciones}</p>
+                    <div className="col-span-2 pt-2 border-t border-dashed border-gray-200">
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-1">Observaciones Generales</h4>
+                      <p className="text-sm italic text-gray-700">{muestraSeleccionada.observaciones}</p>
                     </div>
                   )}
                 </div>
 
-                {/* Detalles de Muestras */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Resultados de Análisis</h3>
-                  <div className="space-y-4">
-                    {muestraSeleccionada.detalles && muestraSeleccionada.detalles.length > 0 ? (
-                      muestraSeleccionada.detalles.map((detalle: any, idx: number) => (
-                        <div key={idx} className="bg-white rounded-lg border border-gray-200 p-6">
-                          <h4 className="text-lg font-bold text-gray-900 capitalize flex items-center gap-2 mb-4">
-                            {detalle.tipo_muestra === 'sangre' && '🩸'}
-                            {detalle.tipo_muestra === 'orina' && '💧'}
-                            {detalle.tipo_muestra === 'heces' && '🧻'}
-                            {detalle.tipo_muestra}
-                          </h4>
-                          {detalle.resultados && Object.keys(detalle.resultados).length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                              {Object.entries(detalle.resultados).map(([key, value]: [string, any]) => (
-                                <div key={key} className="border border-gray-200 rounded p-3">
-                                  <p className="text-xs text-gray-600 uppercase mb-1">
-                                    {key.replace(/_/g, ' ')}
-                                  </p>
-                                  <p className="text-sm font-semibold text-gray-900">
-                                    {value !== null && value !== undefined && value !== '' ? String(value) : '-'}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 italic">No hay resultados registrados</p>
-                          )}
-                          {detalle.observaciones && (
-                            <div className="mt-4 pt-4 border-t">
-                              <p className="text-sm text-gray-600 mb-1">Observaciones</p>
-                              <p className="text-gray-900">{detalle.observaciones}</p>
-                            </div>
-                          )}
+                <Separator />
+
+                {/* Results List */}
+                <div className="space-y-4">
+                  {muestraSeleccionada.detalles?.map((detalle: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
+                        <h4 className="font-semibold capitalize flex items-center gap-2">
+                          {detalle.tipo_muestra === 'sangre' && '🩸'}
+                          {detalle.tipo_muestra === 'orina' && '💧'}
+                          {detalle.tipo_muestra === 'heces' && '🧻'}
+                          {detalle.tipo_muestra}
+                        </h4>
+                      </div>
+                      <div className="p-4 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                        {detalle.resultados && Object.entries(detalle.resultados).map(([key, value]: [string, any]) => (
+                          <div key={key} className="bg-slate-50 p-3 rounded border border-slate-100">
+                            <p className="text-xs text-muted-foreground uppercase mb-1 font-medium tracking-wide">
+                              {key.replace(/_/g, ' ')}
+                            </p>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {value !== null && value !== '' ? String(value) : '-'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      {detalle.observaciones && (
+                        <div className="px-4 py-3 bg-yellow-50/50 text-sm text-yellow-800 border-t border-yellow-100">
+                          <span className="font-semibold mr-1">Nota:</span> {detalle.observaciones}
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">No hay detalles disponibles</p>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Footer */}
-              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-                <button
-                  onClick={() => {
-                    setModalAbierto(false);
-                    setMuestraSeleccionada(null);
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cerrar
-                </button>
-                <button
-                  onClick={() => handleDescargarPDF(muestraSeleccionada.id)}
-                  className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors flex items-center space-x-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Descargar PDF</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <DialogClose asChild>
+                <Button variant="outline">Cerrar</Button>
+              </DialogClose>
+              <Button onClick={() => handleDescargarPDF(muestraSeleccionada.id)}>
+                <Download className="w-4 h-4 mr-2" />
+                Descargar PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   );

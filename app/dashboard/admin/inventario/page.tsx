@@ -2,17 +2,46 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
-import SearchBar from '@/app/components/SearchBar';
 import Pagination from '@/app/components/Pagination';
 import ModalAgregarProducto from '@/app/components/ModalAgregarProducto';
 import ModalEditarProducto from '@/app/components/ModalEditarProducto';
 import api from '@/app/lib/api';
-import { Plus, AlertCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { Plus, AlertTriangle, Trash2, Search, Package, ArrowUpDown, Settings2 } from 'lucide-react';
 import { showConfirm, showError, showSuccess } from '@/app/utils/sweetalert';
+
+// ShadCN UI
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function InventarioPage() {
   const [productos, setProductos] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterTipo, setFilterTipo] = useState('todos');
+  const [filterEstado, setFilterEstado] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -39,13 +68,27 @@ export default function InventarioPage() {
     }
   };
 
+  const getBajoStock = (producto: any) => {
+    return producto.cantidad <= (producto.cantidad_minima || 5);
+  };
+
   // Filtrar productos por búsqueda
   const productosFiltrados = productos.filter((producto) => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       producto.nombre_producto.toLowerCase().includes(query) ||
-      producto.tipo.toLowerCase().includes(query)
-    );
+      producto.tipo.toLowerCase().includes(query);
+
+    const matchesTipo = filterTipo === 'todos' || producto.tipo === filterTipo;
+
+    let matchesEstado = true;
+    if (filterEstado === 'bajo') {
+      matchesEstado = getBajoStock(producto);
+    } else if (filterEstado === 'normal') {
+      matchesEstado = !getBajoStock(producto);
+    }
+
+    return matchesSearch && matchesTipo && matchesEstado;
   });
 
   // Calcular paginación
@@ -59,9 +102,7 @@ export default function InventarioPage() {
     setCurrentPage(1);
   }
 
-  const getBajoStock = (producto: any) => {
-    return producto.cantidad <= producto.cantidad_minima;
-  };
+
 
   const productosBajoStock = productos.filter(getBajoStock);
 
@@ -94,182 +135,188 @@ export default function InventarioPage() {
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6 max-w-[1900px] mx-auto w-full p-4 md:p-6">
+
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventario</h1>
-            <p className="text-gray-600 mt-2">
-              Total de productos: {productos.length}
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Inventario</h1>
+            <p className="text-muted-foreground mt-1">
+              Gestión de materiales, reactivos y equipos
             </p>
           </div>
-          <button
+          <Button
             onClick={() => setModalAgregarAbierto(true)}
-            className="flex items-center space-x-2 bg-brand-500 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+            className="bg-brand-500 hover:bg-brand-700 text-white"
           >
-            <Plus className="w-5 h-5" />
-            <span>Agregar Producto</span>
-          </button>
+            <Plus className="w-5 h-5 mr-2" />
+            Agregar Producto
+          </Button>
         </div>
 
-        {/* Alert - Bajo Stock */}
+        {/* Alerts */}
         {productosBajoStock.length > 0 && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-red-900">
-                {productosBajoStock.length} producto(s) con stock bajo
-              </p>
-              <p className="text-sm text-red-800 mt-1">
-                {productosBajoStock.map((p) => p.nombre_producto).join(', ')}
-              </p>
+          <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-900">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertTitle className="text-red-800 font-semibold">Alerta de Stock Bajo</AlertTitle>
+            <AlertDescription className="text-red-700 mt-1">
+              Hay {productosBajoStock.length} productos con existencias por debajo del mínimo:
+              <span className="font-medium ml-1">
+                {productosBajoStock.slice(0, 5).map(p => p.nombre_producto).join(', ')}
+                {productosBajoStock.length > 5 && '... y más'}
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Content */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Listado de Productos</CardTitle>
+                <CardDescription>Total registrados: {productos.length}</CardDescription>
+              </div>
             </div>
-          </div>
-        )}
+            <div className="mt-4 flex flex-col sm:flex-row gap-4">
+              <div className="relative max-w-sm flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar producto..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
 
-        {/* Búsqueda */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <SearchBar
-            placeholder="Buscar por nombre o tipo..."
-            value={searchQuery}
-            onSearch={setSearchQuery}
-          />
-          <p className="text-sm text-gray-600 mt-2">
-            Resultados: {productosFiltrados.length} productos
-          </p>
-        </div>
+              <Select value={filterTipo} onValueChange={setFilterTipo}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los tipos</SelectItem>
+                  <SelectItem value="material">Material</SelectItem>
+                  <SelectItem value="reactivo">Reactivo</SelectItem>
+                  <SelectItem value="equipo">Equipo</SelectItem>
+                  <SelectItem value="consumible">Consumible</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
 
-        {/* Error */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Loading */}
-        {cargando && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto"></div>
-          </div>
-        )}
-
-        {/* Productos Table */}
-        {!cargando && productosPaginados.length > 0 && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Producto
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Tipo
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Cantidad
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Mínimo
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-900">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {productosPaginados.map((producto) => (
-                    <tr
-                      key={producto.id}
-                      className={`hover:bg-gray-50 ${
-                        getBajoStock(producto) ? 'bg-red-50' : ''
-                      }`}
-                    >
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {producto.nombre_producto}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">
-                        {producto.tipo}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {producto.cantidad}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {producto.cantidad_minima}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                            getBajoStock(producto)
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {getBajoStock(producto) ? 'Bajo' : 'Normal'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm space-x-3">
-                        <button
-                          onClick={() => handleEditar(producto)}
-                          className="text-brand-600 hover:text-brand-700 font-medium"
-                        >
-                          Gestionar
-                        </button>
-                        <button
-                          onClick={() => handleEliminar(producto.id)}
-                          disabled={cargandoEliminar === producto.id}
-                          className="text-red-600 hover:text-red-700 font-medium disabled:text-gray-400"
-                        >
-                          {cargandoEliminar === producto.id ? (
-                            <span className="inline-flex items-center">
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Eliminando...
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center">
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Eliminar
-                            </span>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Select value={filterEstado} onValueChange={setFilterEstado}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="bajo">Bajo Stock</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        )}
+          </CardHeader>
+          <CardContent>
+            {cargando ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
+              </div>
+            ) : productosPaginados.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>{searchQuery ? 'No se encontraron productos' : 'No hay productos registrados'}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Producto</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Cantidad Actual</TableHead>
+                      <TableHead>Mínimo</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {productosPaginados.map((producto) => {
+                      const isLowStock = getBajoStock(producto);
+                      return (
+                        <TableRow key={producto.id} className={isLowStock ? "bg-red-50/50 hover:bg-red-50" : ""}>
+                          <TableCell className="font-medium text-gray-900">
+                            {producto.nombre_producto}
+                          </TableCell>
+                          <TableCell className="capitalize text-muted-foreground">
+                            {producto.tipo}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {producto.cantidad}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {producto.cantidad_minima || 5}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={isLowStock ? "destructive" : "secondary"} className={
+                              isLowStock ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-green-100 text-green-800 hover:bg-green-100"
+                            }>
+                              {isLowStock ? 'Bajo Stock' : 'Normal'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
 
-        {/* Empty State */}
-        {!cargando && productosFiltrados.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg">
-            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg mb-4">
-              {searchQuery ? 'No se encontraron productos' : 'No hay productos en el inventario'}
-            </p>
-            <button
-              onClick={() => setModalAgregarAbierto(true)}
-              className="inline-flex items-center space-x-2 bg-brand-500 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Agregar Primer Producto</span>
-            </button>
-          </div>
-        )}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditar(producto)}
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Settings2 className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Gestionar Stock</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEliminar(producto.id)}
+                              disabled={cargandoEliminar === producto.id}
+                              className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              {cargandoEliminar === producto.id ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
-        {/* Paginación */}
-        {productosFiltrados.length > itemsPerPage && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        )}
+            {/* Pagination */}
+            {productosFiltrados.length > itemsPerPage && (
+              <div className="mt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Modal Agregar */}
         <ModalAgregarProducto
@@ -293,6 +340,6 @@ export default function InventarioPage() {
           }}
         />
       </div>
-    </ProtectedRoute>
+    </ProtectedRoute >
   );
 }

@@ -1,11 +1,57 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Package } from 'lucide-react';
+import {
+  X,
+  Plus,
+  Trash2,
+  Package,
+  Check,
+  ChevronsUpDown,
+  AlertCircle,
+  Beaker,
+  TestTube
+} from 'lucide-react';
 import api from '@/app/lib/api';
 import FormSangre from './FormSangre';
 import FormOrina from './FormOrina';
 import FormHeces from './FormHeces';
+import { cn } from "@/lib/utils"
+
+// Shadcn UI Components
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface ModalMuestraAvanzadaProps {
   isOpen: boolean;
@@ -34,24 +80,37 @@ export default function ModalMuestraAvanzada({
 }: ModalMuestraAvanzadaProps) {
   const [pacientes, setPacientes] = useState<any[]>([]);
   const [inventario, setInventario] = useState<any[]>([]);
+
+  // Form State
   const [pacienteId, setPacienteId] = useState('');
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState<any>(null);
+  const [openCombobox, setOpenCombobox] = useState(false);
+
   const [observacionesGenerales, setObservacionesGenerales] = useState('');
   const [pagado, setPagado] = useState(false);
   const [detalles, setDetalles] = useState<DetalleMuestra[]>([]);
+
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  const [step, setStep] = useState(1); // 1: Info General, 2: Detalles Exámenes
 
   useEffect(() => {
     if (isOpen) {
       obtenerPacientes();
       obtenerInventario();
-      setPacienteId('');
-      setObservacionesGenerales('');
-      setPagado(false);
-      setDetalles([]);
-      setError('');
+      resetForm();
     }
   }, [isOpen]);
+
+  const resetForm = () => {
+    setPacienteId('');
+    setPacienteSeleccionado(null);
+    setObservacionesGenerales('');
+    setPagado(false);
+    setDetalles([]);
+    setError('');
+    setStep(1);
+  };
 
   const obtenerPacientes = async () => {
     try {
@@ -71,26 +130,23 @@ export default function ModalMuestraAvanzada({
     }
   };
 
-  const tiposDisponibles = () => {
-    const agregados = detalles.map((d) => d.tipo_muestra);
-    const todos = ['sangre', 'orina', 'heces'];
-    return todos.filter((tipo) => !agregados.includes(tipo));
-  };
 
-  const agregarTipoMuestra = (tipo: string) => {
-    setDetalles([
-      ...detalles,
-      {
-        tipo_muestra: tipo,
-        resultados: {},
-        observaciones: '',
-        productos: [],
-      },
-    ]);
-  };
 
-  const eliminarTipoMuestra = (index: number) => {
-    setDetalles(detalles.filter((_, i) => i !== index));
+  const toggleTipoMuestra = (tipo: string) => {
+    const existe = detalles.some(d => d.tipo_muestra === tipo);
+    if (existe) {
+      setDetalles(detalles.filter(d => d.tipo_muestra !== tipo));
+    } else {
+      setDetalles([
+        ...detalles,
+        {
+          tipo_muestra: tipo,
+          resultados: {},
+          observaciones: '',
+          productos: [],
+        },
+      ]);
+    }
   };
 
   const actualizarResultados = (index: number, field: string, value: any) => {
@@ -111,13 +167,18 @@ export default function ModalMuestraAvanzada({
     const producto = inventario.find(p => p.id === parseInt(productoId));
     if (!producto) return;
 
+    if (producto.cantidad <= 0) {
+      setError(`El producto ${producto.nombre_producto} no tiene stock disponible.`);
+      return;
+    }
+
     const nuevosDetalles = [...detalles];
     const yaExiste = nuevosDetalles[detalleIndex].productos.find(
       p => p.producto_id === parseInt(productoId)
     );
 
     if (yaExiste) {
-      alert('Este producto ya está en la lista');
+      setError(`El producto ${producto.nombre_producto} ya está en la lista.`);
       return;
     }
 
@@ -128,6 +189,7 @@ export default function ModalMuestraAvanzada({
       stock: producto.cantidad,
     });
 
+    setError(''); // Clear previous errors
     setDetalles(nuevosDetalles);
   };
 
@@ -135,16 +197,27 @@ export default function ModalMuestraAvanzada({
     const nuevosDetalles = [...detalles];
     nuevosDetalles[detalleIndex].productos.splice(productoIndex, 1);
     setDetalles(nuevosDetalles);
+    setError('');
   };
 
   const actualizarCantidadProducto = (detalleIndex: number, productoIndex: number, cantidad: number) => {
     const nuevosDetalles = [...detalles];
+    const producto = nuevosDetalles[detalleIndex].productos[productoIndex];
+
+    if (cantidad < 1) cantidad = 1;
+
+    if (cantidad > producto.stock) {
+      setError(`Stock insuficiente para ${producto.nombre}. Máximo disponible: ${producto.stock}`);
+      cantidad = producto.stock;
+    } else {
+      setError('');
+    }
+
     nuevosDetalles[detalleIndex].productos[productoIndex].cantidad = cantidad;
     setDetalles(nuevosDetalles);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
 
     if (!pacienteId) {
@@ -160,7 +233,6 @@ export default function ModalMuestraAvanzada({
     try {
       setCargando(true);
 
-      // Transformar detalles para enviar solo los campos necesarios de productos
       const detallesParaEnviar = detalles.map(detalle => ({
         tipo_muestra: detalle.tipo_muestra,
         resultados: detalle.resultados,
@@ -181,264 +253,285 @@ export default function ModalMuestraAvanzada({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al crear muestra');
+      console.error('❌ Error al crear muestra:', err);
+      const errorMsg = err.response?.data?.error || err.message || 'Error desconocido al crear muestra';
+      setError(`${errorMsg} (Código: ${err.response?.status})`);
     } finally {
       setCargando(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Registrar Nueva Muestra
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-            disabled={cargando}
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden sm:h-[85vh]">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle className="text-xl">Registrar Nueva Muestra</DialogTitle>
+          <DialogDescription>
+            Paso {step} de 2:info {step === 1 ? 'Selección de Paciente y Tipos' : 'Detalles de Análisis'}
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Información General
-            </h3>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Paciente *
-              </label>
-              <select
-                value={pacienteId}
-                onChange={(e) => setPacienteId(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              >
-                <option value="">Selecciona un paciente</option>
-                {pacientes.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} ({p.cedula})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Observaciones Generales
-              </label>
-              <textarea
-                value={observacionesGenerales}
-                onChange={(e) => setObservacionesGenerales(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                placeholder="Observaciones que aplican a toda la prueba..."
-              />
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <input
-                type="checkbox"
-                id="pagado"
-                checked={pagado}
-                onChange={(e) => setPagado(e.target.checked)}
-                className="w-5 h-5 text-brand-500 bg-white border-gray-300 rounded focus:ring-brand-500 focus:ring-2 cursor-pointer"
-              />
-              <label htmlFor="pagado" className="text-sm font-semibold text-gray-700 cursor-pointer select-none">
-                ✅ Muestra Pagada
-              </label>
-              <span className="text-xs text-gray-500">
-                (Los clientes solo verán muestras marcadas como pagadas)
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Tipos de Muestras
-              </h3>
-
-              {tiposDisponibles().length > 0 && (
-                <div className="flex gap-2">
-                  {tiposDisponibles().map((tipo) => (
-                    <button
-                      key={tipo}
-                      type="button"
-                      onClick={() => agregarTipoMuestra(tipo)}
-                      className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="capitalize">{tipo}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {detalles.length === 0 && (
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-600">
-                Agrega al menos un tipo de muestra usando los botones arriba
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6 pb-6">
+            {error && (
+              <div className="p-3 bg-red-50 text-red-700 rounded-md flex items-center gap-2 text-sm border border-red-200">
+                <AlertCircle className="w-4 h-4" />
+                {error}
               </div>
             )}
 
-            {detalles.map((detalle, index) => (
-              <div
-                key={index}
-                className="p-4 border-2 border-gray-200 rounded-lg space-y-4"
-              >
-                <div className="flex justify-between items-center">
-                  <h4 className="text-md font-semibold text-gray-900 capitalize">
-                    {detalle.tipo_muestra === 'sangre' && '🩸 Sangre'}
-                    {detalle.tipo_muestra === 'orina' && '💧 Orina'}
-                    {detalle.tipo_muestra === 'heces' && '🧻 Heces'}
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => eliminarTipoMuestra(index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+            {step === 1 ? (
+              <div className="space-y-6">
+                {/* Selección de Paciente */}
+                <div className="space-y-2">
+                  <Label>Seleccionar Paciente *</Label>
+                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCombobox}
+                        className="w-full justify-between"
+                      >
+                        {pacienteSeleccionado
+                          ? `${pacienteSeleccionado.nombre} (${pacienteSeleccionado.cedula})`
+                          : "Buscar paciente por nombre o cédula..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar paciente..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontró el paciente.</CommandEmpty>
+                          <CommandGroup>
+                            {pacientes.map((paciente) => (
+                              <CommandItem
+                                key={paciente.id}
+                                value={`${paciente.nombre} ${paciente.cedula}`}
+                                onSelect={() => {
+                                  setPacienteId(paciente.id.toString());
+                                  setPacienteSeleccionado(paciente);
+                                  setOpenCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    pacienteId === paciente.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span>{paciente.nombre}</span>
+                                  <span className="text-xs text-muted-foreground">{paciente.cedula}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                {detalle.tipo_muestra === 'sangre' && (
-                  <FormSangre
-                    resultados={detalle.resultados}
-                    onChange={(field, value) =>
-                      actualizarResultados(index, field, value)
-                    }
-                  />
-                )}
-                {detalle.tipo_muestra === 'orina' && (
-                  <FormOrina
-                    resultados={detalle.resultados}
-                    onChange={(field, value) =>
-                      actualizarResultados(index, field, value)
-                    }
-                  />
-                )}
-                {detalle.tipo_muestra === 'heces' && (
-                  <FormHeces
-                    resultados={detalle.resultados}
-                    onChange={(field, value) =>
-                      actualizarResultados(index, field, value)
-                    }
-                  />
-                )}
-
-                <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      📦 Productos Utilizados en este Examen
-                    </label>
-                  </div>
-
-                  <div className="mb-3">
-                    <select
-                      onChange={(e) => {
-                        agregarProducto(index, e.target.value);
-                        e.target.value = '';
-                      }}
-                      className="w-full px-3 py-2 border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">+ Agregar Producto Usado</option>
-                      {inventario.filter(p => p.cantidad > 0).map((producto) => (
-                        <option key={producto.id} value={producto.id}>
-                          {producto.nombre_producto} - Stock: {producto.cantidad}
-                        </option>
-                      ))}
-                    </select>
-                    {inventario.filter(p => p.cantidad > 0).length === 0 && (
-                      <p className="text-xs text-orange-600 mt-1">
-                        ⚠️ No hay productos con stock. Ve a Inventario para agregar productos.
-                      </p>
-                    )}
-                  </div>
-
-                  {detalle.productos.length === 0 ? (
-                    <p className="text-sm text-gray-600 italic">Sin productos registrados</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {detalle.productos.map((producto, pIndex) => (
-                        <div key={pIndex} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-blue-200">
-                          <span className="flex-1 text-sm font-medium text-gray-900">{producto.nombre}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Stock: {producto.stock}</span>
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs text-gray-600">Cant:</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max={producto.stock}
-                              value={producto.cantidad}
-                              onChange={(e) => actualizarCantidadProducto(index, pIndex, parseInt(e.target.value) || 1)}
-                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => eliminarProducto(index, pIndex)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                {/* Selección de Tipos de Muestra */}
+                <div className="space-y-3">
+                  <Label>Tipos de Análisis a Realizar *</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {['sangre', 'orina', 'heces'].map((tipo) => {
+                      const isSelected = detalles.some(d => d.tipo_muestra === tipo);
+                      return (
+                        <div
+                          key={tipo}
+                          onClick={() => toggleTipoMuestra(tipo)}
+                          className={cn(
+                            "cursor-pointer border-2 rounded-lg p-4 flex flex-col items-center gap-2 transition-all hover:border-brand-300",
+                            isSelected
+                              ? "border-brand-500 bg-brand-50 text-brand-700"
+                              : "border-gray-200 bg-white text-gray-600"
+                          )}
+                        >
+                          {tipo === 'sangre' && <TestTube className="w-8 h-8" />}
+                          {tipo === 'orina' && <Beaker className="w-8 h-8" />}
+                          {tipo === 'heces' && <Package className="w-8 h-8" />}
+                          <span className="font-semibold capitalize">{tipo}</span>
+                          {isSelected && <Check className="w-4 h-4 mt-1 text-brand-600" />}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      )
+                    })}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Observaciones específicas de {detalle.tipo_muestra}
-                  </label>
-                  <textarea
-                    value={detalle.observaciones}
-                    onChange={(e) =>
-                      actualizarObservaciones(index, e.target.value)
-                    }
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                    placeholder="Observaciones específicas..."
+                {/* Observaciones Generales */}
+                <div className="space-y-2">
+                  <Label>Observaciones Generales</Label>
+                  <Textarea
+                    placeholder="Notas importantes sobre la toma de muestra..."
+                    value={observacionesGenerales}
+                    onChange={(e) => setObservacionesGenerales(e.target.value)}
                   />
                 </div>
-              </div>
-            ))}
-          </div>
-        </form>
 
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={cargando}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:bg-gray-200"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={cargando}
-            className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 disabled:bg-brand-300 disabled:cursor-not-allowed"
-          >
-            {cargando ? 'Registrando...' : 'Registrar Muestra'}
-          </button>
+                {/* Pago */}
+                <div className="flex items-center space-x-2 border p-3 rounded-lg bg-gray-50">
+                  <Checkbox
+                    id="pagado"
+                    checked={pagado}
+                    onCheckedChange={(checked) => setPagado(checked as boolean)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label
+                      htmlFor="pagado"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Marcar como Pagada
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Si se marca, el resultado será visible inmediatamente para el paciente.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {detalles.map((detalle, index) => (
+                  <div key={detalle.tipo_muestra} className="border rounded-xl p-5 bg-white shadow-sm space-y-4">
+                    <div className="flex items-center gap-3 border-b pb-3">
+                      <Badge className="text-base px-3 py-1 capitalize bg-brand-600">
+                        {detalle.tipo_muestra}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground flex-1">Complete los detalles técnicos</span>
+                    </div>
+
+                    {/* Sub-Formularios Específicos */}
+                    <div className="pl-2 border-l-2 border-gray-100">
+                      {detalle.tipo_muestra === 'sangre' && (
+                        <FormSangre
+                          resultados={detalle.resultados}
+                          onChange={(field, value) => actualizarResultados(index, field, value)}
+                        />
+                      )}
+                      {detalle.tipo_muestra === 'orina' && (
+                        <FormOrina
+                          resultados={detalle.resultados}
+                          onChange={(field, value) => actualizarResultados(index, field, value)}
+                        />
+                      )}
+                      {detalle.tipo_muestra === 'heces' && (
+                        <FormHeces
+                          resultados={detalle.resultados}
+                          onChange={(field, value) => actualizarResultados(index, field, value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Selección de Productos */}
+                    <div className="bg-slate-50 p-4 rounded-lg space-y-3">
+                      <Label className="flex items-center gap-2">
+                        <Package className="w-4 h-4" /> Materiales Utilizados
+                      </Label>
+
+                      <div className="flex gap-2">
+                        <Select onValueChange={(val) => agregarProducto(index, val)}>
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Agregar material..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inventario.filter(p => p.cantidad > 0).map((p) => (
+                              <SelectItem key={p.id} value={p.id.toString()}>
+                                {p.nombre_producto} (Stock: {p.cantidad})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {detalle.productos.length > 0 ? (
+                        <div className="space-y-2 mt-2">
+                          {detalle.productos.map((prod, pIndex) => (
+                            <div key={prod.producto_id} className="flex items-center justify-between bg-white p-2 rounded border text-sm">
+                              <span className="font-medium">{prod.nombre}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-muted-foreground">Cant:</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max={prod.stock}
+                                    value={prod.cantidad}
+                                    onChange={(e) => actualizarCantidadProducto(index, pIndex, parseInt(e.target.value) || 1)}
+                                    className="w-12 border rounded px-1 text-center"
+                                  />
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => eliminarProducto(index, pIndex)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">No se han registrado materiales.</p>
+                      )}
+                    </div>
+
+                    {/* Observaciones Específicas */}
+                    <div className="space-y-2">
+                      <Label>Observaciones de {detalle.tipo_muestra}</Label>
+                      <Textarea
+                        rows={2}
+                        placeholder={`Notas específicas para ${detalle.tipo_muestra}...`}
+                        value={detalle.observaciones}
+                        onChange={(e) => actualizarObservaciones(index, e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
+          {step === 2 && (
+            <Button variant="outline" onClick={() => setStep(1)}>
+              Atrás
+            </Button>
+          )}
+
+          <div className="flex gap-2 ml-auto">
+            <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+
+            {step === 1 ? (
+              <Button
+                className="bg-brand-600 hover:bg-brand-700"
+                onClick={() => {
+                  if (!pacienteId) { setError('Seleccione un paciente'); return; }
+                  if (detalles.length === 0) { setError('Seleccione al menos un tipo de examen'); return; }
+                  setError('');
+                  setStep(2);
+                }}
+              >
+                Siguiente: Detalles
+              </Button>
+            ) : (
+              <Button
+                className="bg-brand-600 hover:bg-brand-700 min-w-[150px]"
+                onClick={handleSubmit}
+                disabled={cargando}
+              >
+                {cargando ? 'Guardando...' : 'Finalizar y Guardar'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

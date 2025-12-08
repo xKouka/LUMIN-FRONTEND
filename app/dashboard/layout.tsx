@@ -1,7 +1,11 @@
 'use client';
 
-import Navbar from '@/app/components/Navbar';
-import Sidebar from '@/app/components/Sidebar';
+import { AppSidebar } from "@/app/components/app-sidebar"
+import { SiteHeader } from "@/app/components/site-header"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 
 export default function DashboardLayout({
@@ -11,17 +15,15 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div className="flex flex-col min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-6 overflow-auto">
-            <div className="max-w-[1900px] mx-auto">
-              {children}
-            </div>
-          </main>
-        </div>
-      </div>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          <SiteHeader />
+          <div className="flex-1">
+            {children}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     </ProtectedRoute>
   );
 }

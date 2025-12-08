@@ -9,6 +9,7 @@ import {
   Droplets,
   Package,
   Shield,
+  FileText,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -65,6 +66,11 @@ export default function Sidebar() {
       label: "Inventario",
       icon: Package,
     },
+    {
+      href: "/dashboard/admin/reportes",
+      label: "Reportes",
+      icon: FileText,
+    },
   ];
 
   // Menú para CLIENTE (solo muestras)
@@ -104,11 +110,10 @@ export default function Sidebar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-brand-500 text-white shadow-lg"
-                    : "text-brand-100 hover:bg-brand-700 hover:text-white"
-                }`}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                  ? "bg-brand-500 text-white shadow-lg"
+                  : "text-brand-100 hover:bg-brand-700 hover:text-white"
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 <span>{link.label}</span>

@@ -32,7 +32,8 @@ export default function LoginForm() {
       Cookies.set('usuario', JSON.stringify(usuario), { expires: 7 });
 
       // Redirigir según el rol
-      if (usuario.rol === 'admin') {
+      if (usuario.rol === 'admin' || usuario.rol === 'super_admin') {
+        // Redirigir al dashboard administrativo
         router.push('/dashboard/admin');
       } else {
         router.push('/dashboard/cliente');
