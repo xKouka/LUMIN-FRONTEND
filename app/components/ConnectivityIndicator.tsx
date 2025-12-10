@@ -6,7 +6,12 @@ import { startSyncMonitor, stopSyncMonitor, syncPendingOperations, isSyncing } f
 import { getSyncStats } from '@/app/lib/db/offlineDB';
 
 export default function ConnectivityIndicator() {
-    const [status, setStatus] = useState({
+    const [status, setStatus] = useState<{
+        isOnline: boolean;
+        database: string;
+        currentState: string | null;
+        isSyncing: boolean;
+    }>({
         isOnline: true,
         database: 'PostgreSQL',
         currentState: null,
