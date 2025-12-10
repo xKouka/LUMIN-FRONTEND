@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import api from '@/app/lib/api';
 import Cookies from 'js-cookie';
+import { showError, showSuccess } from '@/app/utils/sweetalert';
 import { Download, AlertCircle, FileText, User, Mail, Calendar, Eye, Activity } from 'lucide-react';
+import { generateSamplePDF } from '@/app/utils/samplePdf';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,21 +49,21 @@ export default function ClienteDashboardPage() {
     }
   };
 
+
   const handleDescargarPDF = async (muestraId: number) => {
     try {
-      const response = await api.get(`/muestras/${muestraId}/pdf`, {
-        responseType: 'blob',
-      });
+      showSuccess('Generando PDF...', 'Por favor espera un momento.');
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `muestra_${muestraId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      // 1. Obtener datos completos de la muestra (incluyendo detalles)
+      const response = await api.get(`/muestras/${muestraId}`);
+      const muestraData = response.data;
+
+      // 2. Generar PDF en el cliente
+      generateSamplePDF(muestraData);
+
     } catch (err: any) {
       console.error('Error al descargar PDF:', err);
+      showError('Error', 'No se pudo obtener los datos para generar el reporte.');
     }
   };
 
