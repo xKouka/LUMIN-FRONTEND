@@ -93,7 +93,8 @@ export default function ConnectivityIndicator() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000); // timeout 5s
 
-            const response = await fetch('http://localhost:5000/api/status/connectivity', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/status/connectivity`, {
                 signal: controller.signal,
             });
 

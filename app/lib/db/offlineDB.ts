@@ -38,7 +38,8 @@ const DB_VERSION = 2; // Increment version
 /**
  * Initialize IndexedDB connection
  */
-export async function initDB(): Promise<IDBPDatabase<OfflineQueueDB>> {
+export async function initDB(): Promise<IDBPDatabase<OfflineQueueDB> | null> {
+    if (typeof window === 'undefined') return null;
     return openDB<OfflineQueueDB>(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion) {
             if (!db.objectStoreNames.contains('operations')) {
@@ -63,6 +64,7 @@ export async function addOperation(
     dependsOn?: string
 ): Promise<string> {
     const db = await initDB();
+    if (!db) return '';
     const id = crypto.randomUUID();
 
     const operation: OfflineQueueDB['operations']['value'] = {
@@ -85,6 +87,7 @@ export async function addOperation(
  */
 export async function getPendingOperations(): Promise<OfflineQueueDB['operations']['value'][]> {
     const db = await initDB();
+    if (!db) return [];
     const ops = await db.getAllFromIndex('operations', 'by-status', 'pending');
     // Sort by timestamp (FIFO)
     return ops.sort((a, b) => a.timestamp - b.timestamp);
@@ -95,6 +98,7 @@ export async function getPendingOperations(): Promise<OfflineQueueDB['operations
  */
 export async function markOperationComplete(id: string): Promise<void> {
     const db = await initDB();
+    if (!db) return;
     const operation = await db.get('operations', id);
     if (operation) {
         operation.status = 'completed';
@@ -107,6 +111,7 @@ export async function markOperationComplete(id: string): Promise<void> {
  */
 export async function markOperationFailed(id: string, error: string): Promise<void> {
     const db = await initDB();
+    if (!db) return;
     const operation = await db.get('operations', id);
     if (operation) {
         operation.status = 'failed';
@@ -121,6 +126,7 @@ export async function markOperationFailed(id: string, error: string): Promise<vo
  */
 export async function retryOperation(id: string): Promise<void> {
     const db = await initDB();
+    if (!db) return;
     const operation = await db.get('operations', id);
     if (operation && operation.retries < 3) {
         operation.status = 'pending';
@@ -133,6 +139,7 @@ export async function retryOperation(id: string): Promise<void> {
  */
 export async function getSyncStats() {
     const db = await initDB();
+    if (!db) return { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 };
     const all = await db.getAll('operations');
 
     return {
@@ -149,6 +156,7 @@ export async function getSyncStats() {
  */
 export async function clearOldOperations(): Promise<void> {
     const db = await initDB();
+    if (!db) return;
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     const all = await db.getAll('operations');
 
@@ -164,6 +172,7 @@ export async function clearOldOperations(): Promise<void> {
  */
 export async function cacheResponse(url: string, data: any): Promise<void> {
     const db = await initDB();
+    if (!db) return;
     await db.put('api_cache', {
         url,
         data,
@@ -176,6 +185,7 @@ export async function cacheResponse(url: string, data: any): Promise<void> {
  */
 export async function getCachedResponse(url: string): Promise<any | null> {
     const db = await initDB();
+    if (!db) return null;
     const entry = await db.get('api_cache', url);
     return entry ? entry.data : null;
 }
