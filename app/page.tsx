@@ -3,12 +3,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, Droplet, FileText, Phone, MapPin, CheckCircle, Users } from 'lucide-react';
+import { Heart, Droplet, FileText, Phone, MapPin, CheckCircle, Users, Menu, X } from 'lucide-react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 export default function LandingPage() {
   const [buttonMessage, setButtonMessage] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     AOS.init({
@@ -56,8 +57,63 @@ export default function LandingPage() {
                 Ingresar
               </Link>
             </nav>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-gray-700 hover:text-brand-500 p-2"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-lg left-0">
+            <div className="px-4 pt-2 pb-6 space-y-2">
+              <a
+                href="#sobre-nosotros"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-500 hover:bg-gray-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sobre Nosotros
+              </a>
+              <a
+                href="#servicios"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-500 hover:bg-gray-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Servicios
+              </a>
+              <a
+                href="#ubicacion"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-500 hover:bg-gray-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Ubicación
+              </a>
+              <a
+                href="#contacto"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-500 hover:bg-gray-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Contacto
+              </a>
+              <div className="pt-4 mt-4 border-t border-gray-100">
+                <Link
+                  href="/login"
+                  className="block w-full text-center bg-brand-500 text-white px-6 py-3 rounded-lg hover:bg-brand-700 transition-colors font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Ingresar al Sistema
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
@@ -99,8 +155,8 @@ export default function LandingPage() {
                 merece atención profesional y resultados que contribuyan a su diagnóstico y tratamiento médico.
               </p>
               <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-                El laboratorio fue fundado por la bionalista Daniela Velazquez quien tirstemente fallecio este mismo año,
-                desde estonces Diana velazca es la bionalista a cargo del laboratorio.
+                El laboratorio fue fundado por la bionalista Daniela Hernandez quien tirstemente fallecio este mismo año,
+                desde estonces Diana Hernandez es la bionalista a cargo del laboratorio.
               </p>
             </div>
           </div>
