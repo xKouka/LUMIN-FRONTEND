@@ -12,6 +12,7 @@ import {
     BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
+import ConnectivityIndicator from './ConnectivityIndicator';
 
 export function SiteHeader() {
     const router = useRouter();
@@ -38,6 +39,11 @@ export function SiteHeader() {
             </div>
 
             <div className="flex items-center gap-4">
+                {/* Connectivity Indicator */}
+                <ConnectivityIndicator />
+
+                <Separator orientation="vertical" className="h-8 bg-brand-300" />
+
                 <div className="hidden md:flex items-center gap-2">
                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-brand-500 font-bold">
                         {usuario?.nombre?.charAt(0).toUpperCase() || 'U'}

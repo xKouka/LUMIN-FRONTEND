@@ -226,7 +226,7 @@ export default function ModalEditarMuestra({
           <Button
             onClick={handleSubmit}
             disabled={cargando || loadingDetalles}
-            className="bg-brand-600 hover:bg-brand-700 min-w-[140px]"
+            className="bg-brand-500 hover:bg-brand-600 min-w-[140px]"
           >
             {cargando ? (
               <>

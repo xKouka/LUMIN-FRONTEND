@@ -168,7 +168,7 @@ export default function ModalUsuarioAdmin({ isOpen, onClose, onSaved, usuarioEdi
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose} disabled={loading}>Cancelar</Button>
-                    <Button onClick={handleSave} disabled={loading} className="bg-brand-600 hover:bg-brand-700">
+                    <Button onClick={handleSave} disabled={loading} className="bg-brand-500 hover:bg-brand-600">
                         {loading ? 'Guardando...' : (usuarioEditar ? 'Actualizar' : 'Crear Usuario')}
                     </Button>
                 </DialogFooter>

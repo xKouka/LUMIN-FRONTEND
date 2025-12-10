@@ -104,16 +104,22 @@ export default function Sidebar() {
         <nav className="space-y-2">
           {links.map((link) => {
             const Icon = link.icon;
-            const isActive = pathname === link.href;
+            const isActive = pathname === link.href || (
+              link.href !== '/dashboard/admin' &&
+              link.href !== '/dashboard/super-admin' &&
+              link.href !== '/dashboard/cliente' &&
+              pathname.startsWith(`${link.href}/`)
+            );
 
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                  ? "bg-brand-500 text-white shadow-lg"
-                  : "text-brand-100 hover:bg-brand-700 hover:text-white"
+                  ? "text-white shadow-lg"
+                  : "text-brand-100 hover:bg-[#2E7D5C] hover:text-white"
                   }`}
+                style={isActive ? { backgroundColor: '#2E7D5C' } : {}}
               >
                 <Icon className="w-5 h-5" />
                 <span>{link.label}</span>

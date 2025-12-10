@@ -243,12 +243,18 @@ export default function ModalMuestraAvanzada({
         }))
       }));
 
-      await api.post('/muestras', {
+      const response = await api.post('/muestras', {
         paciente_id: parseInt(pacienteId),
         observaciones: observacionesGenerales || null,
         detalles: detallesParaEnviar,
         pagado,
       });
+
+      // Check if operation was queued (offline mode)
+      if (response.data?.queued) {
+        console.log('✅ Operation queued for offline sync');
+        alert(response.data.message || 'Operación guardada. Se sincronizará cuando recuperes la conexión.');
+      }
 
       onSuccess();
       onClose();
@@ -398,7 +404,7 @@ export default function ModalMuestraAvanzada({
                 {detalles.map((detalle, index) => (
                   <div key={detalle.tipo_muestra} className="border rounded-xl p-5 bg-white shadow-sm space-y-4">
                     <div className="flex items-center gap-3 border-b pb-3">
-                      <Badge className="text-base px-3 py-1 capitalize bg-brand-600">
+                      <Badge className="text-base px-3 py-1 capitalize bg-brand-500">
                         {detalle.tipo_muestra}
                       </Badge>
                       <span className="text-sm text-muted-foreground flex-1">Complete los detalles técnicos</span>
@@ -510,7 +516,7 @@ export default function ModalMuestraAvanzada({
 
             {step === 1 ? (
               <Button
-                className="bg-brand-600 hover:bg-brand-700"
+                className="bg-brand-500 hover:bg-brand-600"
                 onClick={() => {
                   if (!pacienteId) { setError('Seleccione un paciente'); return; }
                   if (detalles.length === 0) { setError('Seleccione al menos un tipo de examen'); return; }
@@ -522,7 +528,7 @@ export default function ModalMuestraAvanzada({
               </Button>
             ) : (
               <Button
-                className="bg-brand-600 hover:bg-brand-700 min-w-[150px]"
+                className="bg-brand-500 hover:bg-brand-600 min-w-[150px]"
                 onClick={handleSubmit}
                 disabled={cargando}
               >

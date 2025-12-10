@@ -15,12 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogContent,
@@ -213,41 +208,24 @@ export default function MuestrasClientePage() {
               <CalendarIcon className="w-4 h-4" />
               Fecha Específica
             </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={`w-full justify-start text-left font-normal ${!fechaEspecifica && "text-muted-foreground"}`}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {fechaEspecifica ? fechaEspecifica.toLocaleDateString('es-ES') : "Seleccionar fecha"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={fechaEspecifica}
-                  onSelect={(date) => {
-                    setFechaEspecifica(date);
-                    if (date) setFiltroFecha('todas');
-                  }}
-                  initialFocus
-                />
-                {fechaEspecifica && (
-                  <div className="p-3 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setFechaEspecifica(undefined)}
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Limpiar fecha
-                    </Button>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
+            <DatePicker
+              date={fechaEspecifica}
+              setDate={(date) => {
+                setFechaEspecifica(date);
+                if (date) setFiltroFecha('todas');
+              }}
+            />
+            {fechaEspecifica && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs h-7 text-muted-foreground hover:text-red-500"
+                onClick={() => setFechaEspecifica(undefined)}
+              >
+                <X className="w-3 h-3 mr-1" />
+                Limpiar fecha
+              </Button>
+            )}
           </div>
         </div>
 

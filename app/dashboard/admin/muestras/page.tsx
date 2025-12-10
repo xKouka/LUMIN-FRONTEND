@@ -50,6 +50,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { DatePicker } from '@/components/ui/date-picker';
 
 export default function MuestrasAdminPage() {
   const [muestras, setMuestras] = useState<any[]>([]);
@@ -211,7 +212,7 @@ export default function MuestrasAdminPage() {
           </div>
           <Button
             onClick={() => setModalAbierto(true)}
-            className="bg-brand-500 hover:bg-brand-700 text-white"
+            className="bg-brand-500 hover:bg-brand-600 text-white"
           >
             <Plus className="w-5 h-5 mr-2" />
             Nueva Muestra
@@ -267,21 +268,15 @@ export default function MuestrasAdminPage() {
               {/* Date Filters */}
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative">
-                  <Input
-                    type="date"
-                    value={fechaInicio}
-                    onChange={(e) => setFechaInicio(e.target.value)}
-                    className="w-full sm:w-auto"
-                    placeholder="Fecha Inicio"
+                  <DatePicker
+                    date={fechaInicio && !isNaN(Date.parse(fechaInicio)) ? new Date(fechaInicio + 'T00:00:00') : undefined}
+                    setDate={(date) => setFechaInicio(date ? format(date, 'yyyy-MM-dd') : '')}
                   />
                 </div>
                 <div className="relative">
-                  <Input
-                    type="date"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                    className="w-full sm:w-auto"
-                    placeholder="Fecha Fin"
+                  <DatePicker
+                    date={fechaFin && !isNaN(Date.parse(fechaFin)) ? new Date(fechaFin + 'T00:00:00') : undefined}
+                    setDate={(date) => setFechaFin(date ? format(date, 'yyyy-MM-dd') : '')}
                   />
                 </div>
               </div>
@@ -373,9 +368,10 @@ export default function MuestrasAdminPage() {
                                   }}
                                   disabled={cargandoPago === m.id}
                                   className={`h-7 px-3 text-xs gap-1.5 rounded-full transition-colors ${m.pagado
-                                    ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
+                                    ? 'text-white border-[#2E7D5C] shadow-sm'
                                     : 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200'
                                     }`}
+                                  style={m.pagado ? { backgroundColor: '#2E7D5C', borderColor: '#2E7D5C', color: 'white' } : {}}
                                 >
                                   {cargandoPago === m.id ? (
                                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />

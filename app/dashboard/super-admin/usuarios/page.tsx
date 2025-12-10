@@ -94,7 +94,7 @@ export default function UsuariosPage() {
                     </div>
                     <Button
                         onClick={handleCreate}
-                        className="bg-brand-600 hover:bg-brand-700 text-white"
+                        className="bg-brand-500 hover:bg-brand-600 text-white"
                     >
                         <UserPlus className="w-5 h-5 mr-2" />
                         Nuevo Usuario

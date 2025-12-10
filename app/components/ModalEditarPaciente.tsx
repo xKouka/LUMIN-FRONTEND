@@ -2,7 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import { X, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface ModalEditarPacienteProps {
   isOpen: boolean;
@@ -107,24 +126,13 @@ export default function ModalEditarPaciente({
     return edad;
   };
 
-  if (!isOpen || !paciente) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">Editar Paciente</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar Paciente</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -132,142 +140,133 @@ export default function ModalEditarPaciente({
             </div>
           )}
 
-          {/* Nombre */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre *
-            </label>
-            <input
-              type="text"
-              value={formData.nombre}
-              onChange={(e) =>
-                setFormData({ ...formData, nombre: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
-            />
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nombre" className="text-right">
+                Nombre *
+              </Label>
+              <Input
+                id="nombre"
+                value={formData.nombre}
+                onChange={(e) =>
+                  setFormData({ ...formData, nombre: e.target.value })
+                }
+                className="col-span-3"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="apellido" className="text-right">
+                Apellido *
+              </Label>
+              <Input
+                id="apellido"
+                value={formData.apellido}
+                onChange={(e) =>
+                  setFormData({ ...formData, apellido: e.target.value })
+                }
+                className="col-span-3"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="cedula" className="text-right">
+                Cédula *
+              </Label>
+              <Input
+                id="cedula"
+                value={formData.cedula}
+                onChange={(e) =>
+                  setFormData({ ...formData, cedula: e.target.value })
+                }
+                className="col-span-3"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fecha_nacimiento" className="text-right">
+                Fecha Nac. *
+              </Label>
+              <div className="col-span-3">
+                <DatePicker
+                  date={
+                    formData.fecha_nacimiento && !isNaN(Date.parse(formData.fecha_nacimiento))
+                      ? new Date(formData.fecha_nacimiento + 'T00:00:00')
+                      : undefined
+                  }
+                  setDate={(date) =>
+                    setFormData({
+                      ...formData,
+                      fecha_nacimiento: date ? format(date, 'yyyy-MM-dd') : '',
+                    })
+                  }
+                />
+                {formData.fecha_nacimiento && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Edad: {calcularEdad(formData.fecha_nacimiento)} años
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="genero" className="text-right">
+                Género
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={formData.genero}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, genero: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="femenino">Femenino</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="telefono" className="text-right">
+                Teléfono
+              </Label>
+              <Input
+                id="telefono"
+                type="tel"
+                value={formData.telefono}
+                onChange={(e) =>
+                  setFormData({ ...formData, telefono: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="direccion" className="text-right">
+                Dirección
+              </Label>
+              <Input
+                id="direccion"
+                value={formData.direccion}
+                onChange={(e) =>
+                  setFormData({ ...formData, direccion: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
           </div>
-
-          {/* Apellido */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Apellido *
-            </label>
-            <input
-              type="text"
-              value={formData.apellido}
-              onChange={(e) =>
-                setFormData({ ...formData, apellido: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
-            />
-          </div>
-
-          {/* Cédula de Identidad */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cédula de Identidad *
-            </label>
-            <input
-              type="text"
-              value={formData.cedula}
-              onChange={(e) =>
-                setFormData({ ...formData, cedula: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
-            />
-          </div>
-
-          {/* Fecha de Nacimiento */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha de Nacimiento *
-            </label>
-            <input
-              type="date"
-              value={formData.fecha_nacimiento}
-              onChange={(e) =>
-                setFormData({ ...formData, fecha_nacimiento: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
-            />
-            {formData.fecha_nacimiento && (
-              <p className="text-xs text-gray-600 mt-1">
-                Edad: {calcularEdad(formData.fecha_nacimiento)} años
-              </p>
-            )}
-          </div>
-
-          {/* Género */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Género
-            </label>
-            <select
-              value={formData.genero}
-              onChange={(e) =>
-                setFormData({ ...formData, genero: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            >
-              <option value="">Selecciona...</option>
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-            </select>
-          </div>
-
-          {/* Teléfono */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Teléfono
-            </label>
-            <input
-              type="tel"
-              value={formData.telefono}
-              onChange={(e) =>
-                setFormData({ ...formData, telefono: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-          </div>
-
-          {/* Dirección */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dirección
-            </label>
-            <input
-              type="text"
-              value={formData.direccion}
-              onChange={(e) =>
-                setFormData({ ...formData, direccion: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={cargando}
-              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
-            >
+            </Button>
+            <Button type="submit" disabled={cargando}>
               {cargando ? 'Guardando...' : 'Guardar Cambios'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

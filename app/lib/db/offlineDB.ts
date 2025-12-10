@@ -22,21 +22,32 @@ interface OfflineQueueDB extends DBSchema {
             'by-timestamp': number;
         };
     };
+    api_cache: {
+        key: string; // URL
+        value: {
+            url: string;
+            data: any;
+            timestamp: number;
+        };
+    };
 }
 
 const DB_NAME = 'blanca-trinidad-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Increment version
 
 /**
  * Initialize IndexedDB connection
  */
 export async function initDB(): Promise<IDBPDatabase<OfflineQueueDB>> {
     return openDB<OfflineQueueDB>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
+        upgrade(db, oldVersion) {
             if (!db.objectStoreNames.contains('operations')) {
                 const store = db.createObjectStore('operations', { keyPath: 'id' });
                 store.createIndex('by-status', 'status');
                 store.createIndex('by-timestamp', 'timestamp');
+            }
+            if (!db.objectStoreNames.contains('api_cache')) {
+                db.createObjectStore('api_cache', { keyPath: 'url' });
             }
         },
     });
@@ -146,4 +157,25 @@ export async function clearOldOperations(): Promise<void> {
             await db.delete('operations', op.id);
         }
     }
+}
+
+/**
+ * Cache an API response
+ */
+export async function cacheResponse(url: string, data: any): Promise<void> {
+    const db = await initDB();
+    await db.put('api_cache', {
+        url,
+        data,
+        timestamp: Date.now(),
+    });
+}
+
+/**
+ * Get cached response
+ */
+export async function getCachedResponse(url: string): Promise<any | null> {
+    const db = await initDB();
+    const entry = await db.get('api_cache', url);
+    return entry ? entry.data : null;
 }

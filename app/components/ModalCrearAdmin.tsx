@@ -2,7 +2,25 @@
 
 import { useState } from 'react';
 import api from '@/app/lib/api';
-import { X, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ModalCrearAdminProps {
   isOpen: boolean;
@@ -35,7 +53,7 @@ export default function ModalCrearAdmin({ isOpen, onClose, onSuccess }: ModalCre
     try {
       setLoading(true);
       await api.post('/usuarios/admin', formData);
-      
+
       // Resetear formulario
       setFormData({
         nombre: '',
@@ -45,7 +63,7 @@ export default function ModalCrearAdmin({ isOpen, onClose, onSuccess }: ModalCre
         contraseña: '',
         rol: 'admin',
       });
-      
+
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -55,105 +73,87 @@ export default function ModalCrearAdmin({ isOpen, onClose, onSuccess }: ModalCre
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Crear Usuario Admin</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Crear Usuario Admin</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre Completo <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
+          <div className="space-y-2">
+            <Label htmlFor="nombre">Nombre Completo *</Label>
+            <Input
+              id="nombre"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Apellido <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
+          <div className="space-y-2">
+            <Label htmlFor="apellido">Apellido *</Label>
+            <Input
+              id="apellido"
               name="apellido"
               value={formData.apellido}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Usuario (Cédula) <span className="text-gray-500 text-xs">(Opcional)</span>
-            </label>
-            <input
-              type="text"
+          <div className="space-y-2">
+            <Label htmlFor="usuario">
+              Usuario (Cédula) <span className="text-muted-foreground text-xs">(Opcional)</span>
+            </Label>
+            <Input
+              id="usuario"
               name="usuario"
               value={formData.usuario}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contraseña <span className="text-red-500">*</span>
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="contraseña">Contraseña *</Label>
             <div className="relative">
-              <input
+              <Input
+                id="contraseña"
                 type={mostrarContraseña ? 'text' : 'password'}
                 name="contraseña"
                 value={formData.contraseña}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 pr-10"
+                className="pr-10"
                 required
               />
               <button
                 type="button"
                 onClick={() => setMostrarContraseña(!mostrarContraseña)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {mostrarContraseña ? (
                   <EyeOff className="w-5 h-5" />
@@ -164,40 +164,33 @@ export default function ModalCrearAdmin({ isOpen, onClose, onSuccess }: ModalCre
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rol <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="rol"
+          <div className="space-y-2">
+            <Label htmlFor="rol">Rol *</Label>
+            <Select
               value={formData.rol}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-              required
+              onValueChange={(value) => setFormData(prev => ({ ...prev, rol: value }))}
             >
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="flex space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-            >
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button type="submit" disabled={loading} className="bg-brand-500 hover:bg-brand-600">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? 'Creando...' : 'Crear Admin'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

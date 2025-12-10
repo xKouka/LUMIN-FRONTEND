@@ -2,7 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import { X, AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ModalMuestraProps {
   isOpen: boolean;
@@ -46,7 +64,7 @@ export default function ModalMuestra({ isOpen, onClose, onSuccess }: ModalMuestr
 
     try {
       // Transformar el formato para que coincida con lo que espera el backend
-      await api.post('/muestras', {
+      const response = await api.post('/muestras', {
         paciente_id: parseInt(formData.paciente_id),
         observaciones: formData.observaciones || null,
         detalles: [{
@@ -55,6 +73,12 @@ export default function ModalMuestra({ isOpen, onClose, onSuccess }: ModalMuestr
           observaciones: ''
         }]
       });
+
+      // Check if operation was queued (offline mode)
+      if (response.data?.queued) {
+        console.log('✅ Operation queued for offline sync');
+        alert(response.data.message || 'Operación guardada. Se sincronizará cuando recuperes la conexión.');
+      }
 
       setFormData({
         paciente_id: '',
@@ -70,110 +94,83 @@ export default function ModalMuestra({ isOpen, onClose, onSuccess }: ModalMuestr
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Registrar Nueva Muestra</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Registrar Nueva Muestra</DialogTitle>
+        </DialogHeader>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           {/* Paciente */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Paciente *
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="paciente">Paciente *</Label>
+            <Select
               value={formData.paciente_id}
-              onChange={(e) =>
-                setFormData({ ...formData, paciente_id: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
+              onValueChange={(value) => setFormData({ ...formData, paciente_id: value })}
               disabled={cargandoPacientes}
             >
-              <option value="">
-                {cargandoPacientes ? 'Cargando...' : 'Selecciona un paciente'}
-              </option>
-              {pacientes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} ({p.rut})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder={cargandoPacientes ? 'Cargando...' : 'Selecciona un paciente'} />
+              </SelectTrigger>
+              <SelectContent>
+                {pacientes.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    {p.nombre} ({p.rut})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Tipo de Examen */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Examen *
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="tipo">Tipo de Examen *</Label>
+            <Select
               value={formData.tipo_examen}
-              onChange={(e) =>
-                setFormData({ ...formData, tipo_examen: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none"
-              required
+              onValueChange={(value) => setFormData({ ...formData, tipo_examen: value })}
             >
-              <option value="sangre">Análisis de Sangre</option>
-              <option value="orina">Análisis de Orina</option>
-              <option value="heces">Análisis de Heces</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona tipo de examen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sangre">Análisis de Sangre</SelectItem>
+                <SelectItem value="orina">Análisis de Orina</SelectItem>
+                <SelectItem value="heces">Análisis de Heces</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Observaciones */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Observaciones
-            </label>
-            <textarea
+          <div className="space-y-2">
+            <Label htmlFor="observaciones">Observaciones</Label>
+            <Textarea
+              id="observaciones"
               value={formData.observaciones}
-              onChange={(e) =>
-                setFormData({ ...formData, observaciones: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
               placeholder="Notas adicionales..."
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-600 focus:border-transparent outline-none resize-none"
+              className="resize-none"
             />
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={cargando}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={cargando}
-              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-400"
-            >
+            </Button>
+            <Button type="submit" disabled={cargando} className="bg-brand-500 hover:bg-brand-600">
+              {cargando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {cargando ? 'Guardando...' : 'Registrar Muestra'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

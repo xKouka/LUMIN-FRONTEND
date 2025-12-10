@@ -285,7 +285,7 @@ export default function SuperAdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[250px] w-full">
+              <div className="h-[250px] w-full min-w-0">
                 {loading ? (
                   <div className="h-full w-full flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />

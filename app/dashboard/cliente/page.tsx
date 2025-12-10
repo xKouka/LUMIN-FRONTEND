@@ -140,7 +140,7 @@ export default function ClienteDashboardPage() {
             <CardContent>
               <Button
                 onClick={() => router.push('/dashboard/cliente/muestras')}
-                className="w-full bg-brand-600 hover:bg-brand-700 text-white"
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Ver Historial Completo

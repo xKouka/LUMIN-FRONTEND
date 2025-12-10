@@ -97,7 +97,7 @@ export function DataTable({ data, loading = false }: DataTableProps) {
                                         <TableCell className="text-right">
                                             <Badge
                                                 variant={muestra.pagado ? "default" : "secondary"}
-                                                className={muestra.pagado ? "bg-brand-600 hover:bg-brand-700" : ""}
+                                                className={muestra.pagado ? "bg-brand-500 hover:bg-brand-600" : ""}
                                             >
                                                 {muestra.pagado ? "Pagado" : "Pendiente"}
                                             </Badge>

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { X, Download, Calendar, BarChart3, PieChart, TrendingUp } from 'lucide-react';
+import { format } from 'date-fns';
 import api from '@/app/lib/api';
 import { showError, showSuccess, showWarning } from '@/app/utils/sweetalert';
 import { fetchReportData, generateReportPDF, ReportData } from '@/app/utils/reportUtils';
@@ -31,6 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface ModalReportesProps {
   isOpen: boolean;
@@ -131,7 +133,7 @@ export default function ModalReportes({ isOpen, onClose, onGenerate }: ModalRepo
                   variant="outline"
                   className="cursor-pointer hover:bg-brand-100 px-4 py-1.5 text-sm bg-white font-normal"
                   onClick={() => {
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = format(new Date(), 'yyyy-MM-dd');
                     setFechaInicio(today);
                     setFechaFin(today);
                   }}
@@ -145,8 +147,8 @@ export default function ModalReportes({ isOpen, onClose, onGenerate }: ModalRepo
                     const today = new Date();
                     const lastWeek = new Date(today);
                     lastWeek.setDate(today.getDate() - 7);
-                    setFechaInicio(lastWeek.toISOString().split('T')[0]);
-                    setFechaFin(today.toISOString().split('T')[0]);
+                    setFechaInicio(format(lastWeek, 'yyyy-MM-dd'));
+                    setFechaFin(format(today, 'yyyy-MM-dd'));
                   }}
                 >
                   Últimos 7 días
@@ -157,8 +159,8 @@ export default function ModalReportes({ isOpen, onClose, onGenerate }: ModalRepo
                   onClick={() => {
                     const today = new Date();
                     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                    setFechaInicio(firstDay.toISOString().split('T')[0]);
-                    setFechaFin(today.toISOString().split('T')[0]);
+                    setFechaInicio(format(firstDay, 'yyyy-MM-dd'));
+                    setFechaFin(format(today, 'yyyy-MM-dd'));
                   }}
                 >
                   Este Mes
@@ -168,21 +170,16 @@ export default function ModalReportes({ isOpen, onClose, onGenerate }: ModalRepo
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Fecha Inicio</Label>
-                  <Input
-                    type="date"
-                    value={fechaInicio}
-                    onChange={(e) => setFechaInicio(e.target.value)}
-                    className="bg-white"
+                  <DatePicker
+                    date={fechaInicio && !isNaN(Date.parse(fechaInicio)) ? new Date(fechaInicio + 'T00:00:00') : undefined}
+                    setDate={(date) => setFechaInicio(date ? format(date, 'yyyy-MM-dd') : '')}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Fecha Fin</Label>
-                  <Input
-                    type="date"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
-                    min={fechaInicio || undefined}
-                    className="bg-white"
+                  <DatePicker
+                    date={fechaFin && !isNaN(Date.parse(fechaFin)) ? new Date(fechaFin + 'T00:00:00') : undefined}
+                    setDate={(date) => setFechaFin(date ? format(date, 'yyyy-MM-dd') : '')}
                   />
                 </div>
               </div>
@@ -191,7 +188,7 @@ export default function ModalReportes({ isOpen, onClose, onGenerate }: ModalRepo
                 <Button
                   onClick={obtenerReporte}
                   disabled={cargando}
-                  className="w-full md:w-auto min-w-[200px] bg-brand-600 hover:bg-brand-700"
+                  className="w-full md:w-auto min-w-[200px] bg-brand-500 hover:bg-brand-600"
                 >
                   {cargando ? (
                     <>

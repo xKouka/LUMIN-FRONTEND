@@ -29,6 +29,7 @@ import {
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface ModalAgregarPacienteProps {
   isOpen: boolean;
@@ -278,38 +279,15 @@ export default function ModalAgregarPaciente({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 flex flex-col">
               <Label>Fecha de Nacimiento *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !formData.fecha_nacimiento && "text-muted-foreground"
-                    )}
-                  >
-                    {formData.fecha_nacimiento ? (
-                      format(formData.fecha_nacimiento, "PPP", { locale: es })
-                    ) : (
-                      <span>Seleccionar fecha</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.fecha_nacimiento}
-                    onSelect={(date) => setFormData({ ...formData, fecha_nacimiento: date })}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                    captionLayout="dropdown-buttons"
-                    fromYear={1920}
-                    toYear={new Date().getFullYear()}
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePicker
+                date={formData.fecha_nacimiento}
+                setDate={(date) =>
+                  setFormData({ ...formData, fecha_nacimiento: date })
+                }
+                fromYear={1920}
+                toYear={new Date().getFullYear()}
+                captionLayout="dropdown"
+              />
               {formData.fecha_nacimiento && (
                 <p className="text-xs text-muted-foreground">
                   Edad calculada: {calcularEdad(formData.fecha_nacimiento)} años
